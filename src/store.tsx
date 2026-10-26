@@ -4,7 +4,7 @@ import { harmfulSample, passingSample, type PersonId } from "./content";
 import { plan, type AgentTurn } from "./loop";
 import { interpret, scoreAnswer, type Reason } from "./logic";
 
-export type View = "landing" | "stage" | "counselor" | "court" | "system";
+export type View = "landing" | "stage" | "counselor" | "court" | "system" | "agent";
 export type Screen = "home" | "result" | "share" | "explain" | "ask" | "family";
 export type Interest = "opt1" | "opt2" | "opt3" | "opt4";
 export type Slot = "slot1" | "slot2" | "slot3";
@@ -50,6 +50,7 @@ export type State = {
   booking: Slot | null;
   counseling: boolean;
   courtSeen: boolean;
+  systemSeen: boolean;
   inviteSent: boolean;
   inviteSigned: boolean;
   referred: boolean;
@@ -106,6 +107,7 @@ export function freshState(lang: Lang = "en", view: View = "landing"): State {
     booking: null,
     counseling: false,
     courtSeen: false,
+    systemSeen: false,
     inviteSent: false,
     inviteSigned: false,
     referred: false,
@@ -152,6 +154,7 @@ function reduce(state: State, action: Action): State {
         ...state,
         view: action.view,
         courtSeen: state.courtSeen || (action.view === "court" && isReleased(state)),
+        systemSeen: state.systemSeen || (action.view === "system" && state.inviteSent),
       };
     case "focus":
       return { ...state, focus: action.id };
@@ -260,7 +263,7 @@ function reduce(state: State, action: Action): State {
   }
 }
 
-export type GuideKey = "g1" | "g2" | "g3" | "g4" | "g5" | "g6" | "g7" | "g8";
+export type GuideKey = "g1" | "g2" | "g3" | "g4" | "g5" | "g6" | "g7" | "g8" | "g9";
 
 export type GuideStep = {
   index: number;
@@ -317,7 +320,8 @@ export function guideStep(state: State): GuideStep {
       run: [stage, { type: "screen", id: "layla", screen: "family" }, { type: "invite", id: "layla" }],
     };
   }
-  return { index: 7, key: "g8", outcomes: [6], run: [{ type: "view", view: "system" }] };
+  if (!state.systemSeen) return { index: 7, key: "g8", outcomes: [6], run: [{ type: "view", view: "system" }] };
+  return { index: 8, key: "g9", outcomes: [2, 3, 4], run: [{ type: "view", view: "agent" }] };
 }
 
 const Ctx = createContext<{ state: State; dispatch: Dispatch<Action> } | null>(null);
