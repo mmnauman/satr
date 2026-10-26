@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { AgentDesk } from "./Agent";
 import { CounselorDesk, CourtDesk, SystemDesk } from "./Desks";
 import { Landing } from "./Landing";
 import { GuideDock, Stage } from "./Stage";
@@ -7,11 +8,12 @@ import { t } from "./strings";
 import { SatrProvider, useSatr, type View } from "./store";
 import { Icon, Mark } from "./visuals";
 
-const NAV: { view: View; key: "navStage" | "navCounselor" | "navCourt" | "navSystem" }[] = [
+const NAV: { view: View; key: "navStage" | "navCounselor" | "navCourt" | "navSystem" | "navAgent" }[] = [
   { view: "stage", key: "navStage" },
   { view: "counselor", key: "navCounselor" },
   { view: "court", key: "navCourt" },
   { view: "system", key: "navSystem" },
+  { view: "agent", key: "navAgent" },
 ];
 
 function TopBar() {
@@ -96,9 +98,10 @@ function Shell() {
           {state.view === "counselor" && <CounselorDesk />}
           {state.view === "court" && <CourtDesk />}
           {state.view === "system" && <SystemDesk />}
+          {state.view === "agent" && <AgentDesk />}
         </motion.div>
       </AnimatePresence>
-      {(state.view === "counselor" || state.view === "court" || state.view === "system") && <GuideDock />}
+      {(state.view === "counselor" || state.view === "court" || state.view === "system" || state.view === "agent") && <GuideDock />}
     </div>
   );
 }

@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open the app, read the overview, then choose **Try the live demo**. In the demo, Layla's and Omar's phones sit side by side. The **Presenter guide** on the right walks through all eight steps; press **Do this step for me** for each one, or tap the phones yourself. The top bar switches to the counsellor, court and health-system views. You can also switch everything to Arabic from the top bar.
+Open the app, read the overview, then choose **Try the live demo**. In the demo, Layla's and Omar's phones sit side by side. The **Presenter guide** on the right is a table of all nine steps, and it stays put while the other panels scroll. Press **Do this step for me** for each one, or tap the phones yourself. The top bar switches to the counsellor, court, health-system and agent-flow views. You can also switch everything to Arabic from the top bar.
 
 ## How it maps to the six outcomes
 

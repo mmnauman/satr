@@ -1,6 +1,7 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PEOPLE, TOGETHER, intersectionGenes, inviteText, partnerOf, prompts, type PersonId } from "./content";
+import { ease } from "./fx";
 import { ALL_GENE_TOKENS, leakedTokens } from "./logic";
 import { renderTurn } from "./loop";
 import { fill, reasonText, t, type Strings } from "./strings";
@@ -270,6 +271,7 @@ function ResultScreen({ id }: { id: PersonId }) {
   const { state, dispatch, c, file, person, partnerName, compiled } = usePerson(id);
   const [learn, setLearn] = useState(false);
   const shared = new Set(intersectionGenes());
+  const reduceMotion = useReducedMotion();
 
   if (!person.opened) {
     return (
@@ -295,12 +297,18 @@ function ResultScreen({ id }: { id: PersonId }) {
         <h2>{c.resultT}</h2>
         <p>{fill(c.resultB, { n: file.findings.length })}</p>
       </header>
-      {file.findings.map((finding) => {
+      {file.findings.map((finding, i) => {
         const isShared = shared.has(finding.gene);
         const tag = !isShared ? c.tagPrivate : compiled ? c.tagShared : c.tagMaybe;
         const text = person.simple ? finding.simple[state.lang] : finding.body[state.lang];
         return (
-          <article key={finding.gene} className={isShared && compiled ? "finding finding-shared" : "finding"}>
+          <motion.article
+            key={finding.gene}
+            className={isShared && compiled ? "finding finding-shared" : "finding"}
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: reduceMotion ? 0 : 0.08 + i * 0.12, ease }}
+          >
             <div className="finding-top">
               <div>
                 <p className="gene">{finding.gene}</p>
@@ -328,7 +336,7 @@ function ResultScreen({ id }: { id: PersonId }) {
             ) : (
               <p className="finding-body">{text}</p>
             )}
-          </article>
+          </motion.article>
         );
       })}
       <section className="card">
@@ -374,6 +382,7 @@ function ShareScreen({ id }: { id: PersonId }) {
   const partner = state.people[partnerOf(id).id];
   const compiledAt = state.audit.find((event) => event.code === "compiled")?.at;
   const matching = useFreshMatch(compiledAt);
+  const reduceMotion = useReducedMotion();
 
   if (!person.opened) {
     return (
@@ -454,8 +463,14 @@ function ShareScreen({ id }: { id: PersonId }) {
         <h2>{c.togetherT}</h2>
         <p>{c.togetherSub}</p>
       </header>
-      {genes.map((gene) => (
-        <article key={gene} className="finding finding-shared reveal">
+      {genes.map((gene, i) => (
+        <motion.article
+          key={gene}
+          className="finding finding-shared"
+          initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.1 + i * 0.14, ease }}
+        >
           <div className="finding-top">
             <div>
               <p className="gene">{gene}</p>
@@ -464,13 +479,18 @@ function ShareScreen({ id }: { id: PersonId }) {
             <Listen text={TOGETHER[gene][state.lang]} />
           </div>
           {!person.simple && <p className="finding-body">{TOGETHER[gene][state.lang]}</p>}
-        </article>
+        </motion.article>
       ))}
-      <section className="card">
+      <motion.section
+        className="card"
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: reduceMotion ? 0 : 0.35, ease }}
+      >
         <h3 className="card-title">{c.riskT}</h3>
         <RiskPicture affected={c.riskAffected} carrier={c.riskCarrier} neither={c.riskNeither} />
         <p className="muted small">{c.riskNote}</p>
-      </section>
+      </motion.section>
       <section className="card card-quiet">
         <h3 className="card-title">{c.familyWhyT}</h3>
         <div className="mini-tree">
@@ -478,10 +498,15 @@ function ShareScreen({ id }: { id: PersonId }) {
         </div>
         <p className="muted small">{c.familyWhyB}</p>
       </section>
-      <p className="private-note">
+      <motion.p
+        className="private-note"
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.5, ease }}
+      >
         <Icon name="lock" size={15} />
         {fill(c.stayedPrivate, { partner: partnerName })}
-      </p>
+      </motion.p>
       <section className="card">
         <h3 className="card-title">{c.optionsT}</h3>
         <p className="muted small">{c.optionsB}</p>
@@ -730,6 +755,7 @@ function FamilyScreen({ id }: { id: PersonId }) {
   const { state, dispatch, c, name } = usePerson(id);
   const text = inviteText(state.lang, state.inviteSigned ? name : undefined);
   const leaks = leakedTokens(text, ALL_GENE_TOKENS);
+  const reduceMotion = useReducedMotion();
   return (
     <div className="screen">
       <button type="button" className="back" onClick={() => dispatch({ type: "screen", id, screen: "home" })}>
@@ -748,13 +774,24 @@ function FamilyScreen({ id }: { id: PersonId }) {
         </label>
       )}
       <p className="eyebrow">{c.preview}</p>
-      <div className="sms">
+      <motion.div
+        className="sms"
+        key={text}
+        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease }}
+      >
         <p>{text}</p>
-      </div>
-      <p className={leaks.length ? "feedback feedback-warn" : "feedback feedback-good"}>
+      </motion.div>
+      <motion.p
+        className={leaks.length ? "feedback feedback-warn" : "feedback feedback-good"}
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35, delay: reduceMotion ? 0 : 0.25, ease }}
+      >
         <Icon name={leaks.length ? "info" : "shieldCheck"} size={16} />
         {leaks.length ? leaks.join(", ") : c.scanClean}
-      </p>
+      </motion.p>
       {state.inviteSent ? (
         <section className="card card-good">
           <h3 className="card-title">

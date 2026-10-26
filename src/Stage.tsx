@@ -46,18 +46,14 @@ export function Stage() {
           </motion.figure>
         ))}
       </div>
-      <motion.aside
-        className="rail"
-        initial="hidden"
-        animate="show"
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.35 } } }}
-      >
-        {[<GuideCard key="g" />, <Ledger key="l" />, <MatchEngine key="m" />, <ActivityLog key="a" />].map((panel) => (
-          <motion.div key={panel.key} variants={{ hidden: { opacity: 0, x: 30 }, show: { opacity: 1, x: 0, transition: { duration: 0.6, ease } } }}>
-            {panel}
-          </motion.div>
-        ))}
-      </motion.aside>
+      <aside className="rail">
+        <GuideCard />
+        <div className="rail-scroll">
+          <Ledger />
+          <MatchEngine />
+          <ActivityLog />
+        </div>
+      </aside>
     </main>
   );
 }
@@ -78,45 +74,101 @@ function useRunner() {
 }
 
 const OUTCOME_KEYS: (keyof Strings)[] = ["o1t", "o2t", "o3t", "o4t", "o5t", "o6t"];
+const GUIDE_KEYS = ["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g9"] as const;
 
 export function GuideCard({ compact = false }: { compact?: boolean }) {
   const { state, dispatch } = useSatr();
   const c = t(state.lang);
   const step = guideStep(state);
   const { busy, run } = useRunner();
-  const finished = step.key === "g8" && state.view === "system";
+  const finished = step.key === "g9" && state.view === "agent";
 
-  return (
-    <section className={compact ? "guide guide-compact" : "guide"}>
-      <div className="guide-head">
-        <p className="eyebrow eyebrow-gold">{c.guideTitle}</p>
-        <p className="guide-count">{fill(c.guideStep, { n: step.index + 1 })}</p>
-      </div>
-      <div className="guide-bar" aria-hidden="true">
-        {Array.from({ length: 8 }, (_, i) => (
-          <span key={i} className={i < step.index || finished ? "is-done" : i === step.index ? "is-now" : ""} />
-        ))}
-      </div>
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={step.key}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3, ease }}
-        >
-          <h3>{c[`${step.key}t` as keyof Strings]}</h3>
-          {!compact && <p className="guide-body">{c[`${step.key}b` as keyof Strings]}</p>}
-        </motion.div>
-      </AnimatePresence>
-      {!compact && (
-        <div className="guide-tags">
-          {step.outcomes.map((n) => (
-            <span key={n} className="otag">
-              {fill(c.outcomeTag, { n })} · {c[OUTCOME_KEYS[n - 1]]}
-            </span>
+  if (compact) {
+    return (
+      <section className="guide guide-compact">
+        <div className="guide-head">
+          <p className="eyebrow eyebrow-gold">{c.guideTitle}</p>
+          <p className="guide-count">{fill(c.guideStep, { n: finished ? GUIDE_KEYS.length : step.index + 1 })}</p>
+        </div>
+        <div className="guide-bar" aria-hidden="true">
+          {GUIDE_KEYS.map((key, i) => (
+            <span key={key} className={finished || i < step.index ? "is-done" : i === step.index ? "is-now" : ""} />
           ))}
         </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.h3
+            key={step.key}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease }}
+          >
+            {c[`${step.key}t`]}
+          </motion.h3>
+        </AnimatePresence>
+        {finished ? (
+          <div className="guide-done">
+            <button type="button" className="btn btn-outline-light btn-sm" onClick={() => dispatch({ type: "reset" })}>
+              <Icon name="refresh" size={15} />
+              {c.startAgain}
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="btn btn-gold btn-shine" disabled={busy} aria-busy={busy} onClick={() => run(step.run)}>
+            <Icon name="play" size={15} />
+            {c.guideDo}
+          </button>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="guide">
+      <div className="guide-head">
+        <p className="eyebrow eyebrow-gold">{c.guideTitle}</p>
+        <p className="guide-count">{fill(c.guideStep, { n: finished ? GUIDE_KEYS.length : step.index + 1 })}</p>
+      </div>
+      <div className="guide-table-wrap">
+        <table className="guide-table">
+          <caption className="sr-only">{c.guideTitle}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{c.guideColN}</th>
+              <th scope="col">{c.guideColStep}</th>
+              <th scope="col">{c.guideColStatus}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {GUIDE_KEYS.map((key, i) => {
+              const done = finished || i < step.index;
+              const now = !finished && i === step.index;
+              return (
+                <tr key={key} className={done ? "is-done" : now ? "is-now" : ""} aria-current={now ? "step" : undefined}>
+                  <th scope="row">{i + 1}</th>
+                  <td>{c[`${key}t`]}</td>
+                  <td>
+                    <span className={done ? "guide-status is-done" : now ? "guide-status is-now" : "guide-status"}>
+                      {done ? c.jDone : now ? c.jNow : c.jNext}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {!finished && (
+        <p className="guide-body">
+          {c[`${step.key}b`]}
+          <span className="guide-tags">
+            {step.outcomes.map((n) => (
+              <span key={n} className="otag">
+                {fill(c.outcomeTag, { n })} · {c[OUTCOME_KEYS[n - 1]]}
+              </span>
+            ))}
+          </span>
+        </p>
       )}
       {finished ? (
         <div className="guide-done">
@@ -130,7 +182,7 @@ export function GuideCard({ compact = false }: { compact?: boolean }) {
           </button>
         </div>
       ) : (
-        <button type="button" className="btn btn-gold btn-block btn-shine" disabled={busy} onClick={() => run(step.run)}>
+        <button type="button" className="btn btn-gold btn-block btn-shine" disabled={busy} aria-busy={busy} onClick={() => run(step.run)}>
           <Icon name="play" size={15} />
           {c.guideDo}
         </button>

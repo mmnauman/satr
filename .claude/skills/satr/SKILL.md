@@ -49,7 +49,7 @@ Vite + React 19 + TypeScript, with `motion` (v12, `motion/react`) for animation.
 
 | File | What it does |
 |---|---|
-| `src/store.tsx` | Reducer and state: views (`landing`, `stage`, `counselor`, `court`, `system`), each phone's screen, consent, explain-it-back steps, booking, audit log. `guideStep()` derives the 8-step presenter guide from state. |
+| `src/store.tsx` | Reducer and state: views (`landing`, `stage`, `counselor`, `court`, `system`, `agent`), each phone's screen, consent, explain-it-back steps, booking, audit log. `guideStep()` derives the 9-step presenter guide from state. |
 | `src/content.ts` | People, findings, shared-result text, assistant replies, invite text, court rows, explain-it-back prompts and samples, plus `runContentChecks()` |
 | `src/logic.ts` | Explain-it-back scoring (`scoreAnswer`) and question intent (`interpret`), English and Arabic. Flags harmful readings like "I'm ill" or "we must not marry". |
 | `src/loop.ts` | The guardrailed assistant: each answer is planned as permissioned tool calls, and `runAgentChecks()` proves no answer leaks a gene the asker may not see. Tool labels shown to users are friendly ("Checked your shared result"), never internal ids. |
@@ -101,7 +101,7 @@ npm run check    # logic, content, assistant and PSI checks
 npm run build
 ```
 
-Demo flow: Overview → **Try the live demo** → press **Do this step for me** eight times. The steps are: Layla opens, Omar opens, both agree (private match and notifications), explain it in their own words (try "Try a harmful reading"), counsellor records the session, court issues the certificate, Layla invites her cousin, health-system view. **Start again** resets the case. The globe button switches to Arabic.
+Demo flow: Overview → **Try the live demo** → press **Do this step for me** nine times. The steps are: Layla opens, Omar opens, both agree (private match and notifications), explain it in their own words (try "Try a harmful reading"), counsellor records the session, court issues the certificate, Layla invites her cousin, health-system view, then the agent-flow view (how Satr answers, and its role for the couple, counsellor, court, family and health system). **Start again** resets the case. The globe button switches to Arabic.
 
 ## Open ideas
 

@@ -7,6 +7,15 @@ import { fill, t } from "./strings";
 import { isExplained, isReleased, useSatr } from "./store";
 import { Icon, Seal } from "./visuals";
 
+function RoleNote({ title, body }: { title: string; body: string }) {
+  return (
+    <motion.aside className="role-note" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}>
+      <h2>{title}</h2>
+      <p>{body}</p>
+    </motion.aside>
+  );
+}
+
 function PageHead({ kicker, title, lead }: { kicker: string; title: string; lead: string }) {
   return (
     <motion.header className="page-head" variants={stagger} initial="hidden" animate="show">
@@ -36,6 +45,7 @@ export function CounselorDesk() {
         <Icon name="steth" size={16} />
         {c.deskStaff}
       </p>
+      <RoleNote title={c.deskRoleT} body={c.deskRoleB} />
       <div className="desk-grid">
         <motion.aside className="queue" variants={stagger} initial="hidden" animate="show">
           <motion.div className="queue-clear" variants={rise}>
@@ -80,42 +90,42 @@ export function CounselorDesk() {
             <div className="detail-grid">
               <section>
                 <h3 className="sub">{c.sharedGenes}</h3>
-                <ul className="gene-list">
+                <motion.ul className="gene-list" variants={stagger} initial="hidden" animate="show">
                   {intersectionGenes().map((gene) => (
-                    <li key={gene} className="gene-chip gene-chip-gold">
+                    <motion.li key={gene} className="gene-chip gene-chip-gold" variants={rise}>
                       <strong>{gene}</strong>
                       <span>{PEOPLE.layla.findings.find((f) => f.gene === gene)?.condition[state.lang]}</span>
-                    </li>
+                    </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
               </section>
               <section>
                 <h3 className="sub">{c.privateGenes}</h3>
-                <ul className="gene-list">
+                <motion.ul className="gene-list" variants={stagger} initial="hidden" animate="show">
                   {(["layla", "omar"] as const).flatMap((id) =>
                     PEOPLE[id].findings
                       .filter((f) => !intersectionGenes().includes(f.gene))
                       .map((f) => (
-                        <li key={`${id}-${f.gene}`} className="gene-chip">
+                        <motion.li key={`${id}-${f.gene}`} className="gene-chip" variants={rise}>
                           <strong>{f.gene}</strong>
                           <span>
                             {PEOPLE[id].name[state.lang]} · {f.condition[state.lang]}
                           </span>
-                        </li>
+                        </motion.li>
                       )),
                   )}
-                </ul>
+                </motion.ul>
               </section>
             </div>
 
-            <section>
+            <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.28, ease }}>
               <h3 className="sub">{c.theirWords}</h3>
               <div className="words">
                 {(["layla", "omar"] as const).map((id) => (
                   <Words key={id} id={id} />
                 ))}
               </div>
-            </section>
+            </motion.section>
 
             <div className="detail-grid">
               <section>
@@ -276,6 +286,7 @@ export function CourtDesk() {
   return (
     <main className="desk wrap">
       <PageHead kicker={c.courtKicker} title={c.courtTitle} lead={c.courtLead} />
+      <RoleNote title={c.courtRoleT} body={c.courtRoleB} />
       <div className="court-grid">
         <motion.article className={released ? "cert is-issued" : "cert"} initial={{ opacity: 0, y: 40, rotate: -1 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, ease }}>
           <span className="cert-scan" aria-hidden="true" />
@@ -350,6 +361,7 @@ export function SystemDesk() {
     <main className="desk wrap">
       <PageHead kicker={c.sysKicker} title={c.sysTitle} lead={c.sysLead} />
       <p className="eyebrow muted-eyebrow">{c.sysIllustrative}</p>
+      <RoleNote title={c.sysRoleT} body={c.sysRoleB} />
       <motion.div className="kpis" variants={stagger} initial="hidden" animate="show">
         <Kpi value={74} suffix="%" label={c.kpi1} />
         <Kpi value={91} suffix="%" label={c.kpi2} />
