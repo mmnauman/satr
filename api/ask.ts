@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { readJsonBody, sendJson } from "./_lib/db";
+import { readJsonBody, sendJson } from "./_lib/db.js";
 
 /**
  * Optional grounded synthesis endpoint:

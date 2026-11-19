@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { buildSeedCase, DEMO_SEEDS, seedLabel } from "../src/domain/demoSeed";
-import { keyMatches, usingDemoKey } from "./_lib/auth";
-import { randomCapabilityToken, randomPairingCode, readJsonBody, sendJson } from "./_lib/db";
-import { getRepo } from "./_lib/repo";
+import { buildSeedCase, DEMO_SEEDS, seedLabel } from "../src/domain/demoSeed.js";
+import { keyMatches, usingDemoKey } from "./_lib/auth.js";
+import { randomCapabilityToken, randomPairingCode, readJsonBody, sendJson } from "./_lib/db.js";
+import { getRepo } from "./_lib/repo.js";
 
 /**
  * Demo access, for reviewers. Needs the staff access key, like every staff action.

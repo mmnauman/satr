@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { usingDemoKey } from "./_lib/auth";
-import { hasDatabaseUrl, sendJson } from "./_lib/db";
+import { usingDemoKey } from "./_lib/auth.js";
+import { hasDatabaseUrl, sendJson } from "./_lib/db.js";
 
 /**
  * Serverless hosts (Vercel) cannot keep a file between requests, so without DATABASE_URL the

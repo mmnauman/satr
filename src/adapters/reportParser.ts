@@ -9,7 +9,7 @@ import {
   type InheritanceMode,
   type Lang,
   type VariantClassification,
-} from "../domain/genes";
+} from "../domain/genes.js";
 
 export type ParsedReport = {
   nameEn?: string;

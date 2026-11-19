@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { sanitizeScreeningNumber } from "../../src/adapters/reportParser";
-import type { CaseSnapshot, ViewerRole } from "../../src/adapters/types";
-import { createPersonFile, type PersonFile, type PersonId } from "../../src/domain/case";
-import { staffRoleOf } from "../_lib/auth";
-import { extractBearerToken, randomCapabilityToken, readJsonBody, sendJson } from "../_lib/db";
+import { sanitizeScreeningNumber } from "../../src/adapters/reportParser.js";
+import type { CaseSnapshot, ViewerRole } from "../../src/adapters/types.js";
+import { createPersonFile, type PersonFile, type PersonId } from "../../src/domain/case.js";
+import { staffRoleOf } from "../_lib/auth.js";
+import { extractBearerToken, randomCapabilityToken, readJsonBody, sendJson } from "../_lib/db.js";
 import {
   counselorMayOpen,
   mergeCounselorUpdate,
@@ -12,9 +12,9 @@ import {
   projectSnapshotForRole,
   recordStaffView,
   removeParticipant,
-} from "../_lib/projection";
-import { createBlankPersonRuntime } from "../../src/adapters/simulationAdapter";
-import { getRepo, type CaseRecord } from "../_lib/repo";
+} from "../_lib/projection.js";
+import { createBlankPersonRuntime } from "../../src/adapters/simulationAdapter.js";
+import { getRepo, type CaseRecord } from "../_lib/repo.js";
 
 function parseCodeFromRequest(req: IncomingMessage & { query?: Record<string, string | string[]> }): string {
   const qCode = req.query?.code;

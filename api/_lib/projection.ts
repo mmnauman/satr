@@ -9,4 +9,4 @@ export {
   recordStaffView,
   removeParticipant,
   summarizeCounselorCase,
-} from "../../src/domain/projection";
+} from "../../src/domain/projection.js";

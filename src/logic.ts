@@ -1,4 +1,4 @@
-import { allKnownSensitiveTokens, findMentionedGeneInText } from "./domain/genes";
+import { allKnownSensitiveTokens, findMentionedGeneInText } from "./domain/genes.js";
 
 export type Reason =
   | "empty"

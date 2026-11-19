@@ -6,7 +6,7 @@ import {
   type Finding,
   type FindingInput,
   type Lang,
-} from "./genes";
+} from "./genes.js";
 
 export type { Finding, FindingInput, Lang };
 export type PersonId = "layla" | "omar";

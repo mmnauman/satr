@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage } from "node:http";
-import type { StaffRole } from "../../src/adapters/types";
-import { extractBearerToken } from "./db";
+import type { StaffRole } from "../../src/adapters/types.js";
+import { extractBearerToken } from "./db.js";
 
 /**
  * Staff sign-in. A genetic counsellor, court clerk or health-system analyst exchanges the

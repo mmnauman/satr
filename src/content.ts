@@ -6,9 +6,9 @@ import {
   type Finding,
   type PersonFile,
   type PersonId,
-} from "./domain/case";
-import type { Lang } from "./domain/genes";
-import { leakedTokens, patientForbidden, scoreAnswer, type Intent } from "./logic";
+} from "./domain/case.js";
+import type { Lang } from "./domain/genes.js";
+import { leakedTokens, patientForbidden, scoreAnswer, type Intent } from "./logic.js";
 
 export type { CaseFiles, Finding, Lang, PersonFile, PersonId };
 

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { StaffRole } from "../src/adapters/types";
-import { issueStaffToken, keyMatches, STAFF_ACCOUNTS, staffRoleOf } from "./_lib/auth";
-import { readJsonBody, sendJson } from "./_lib/db";
+import type { StaffRole } from "../src/adapters/types.js";
+import { issueStaffToken, keyMatches, STAFF_ACCOUNTS, staffRoleOf } from "./_lib/auth.js";
+import { readJsonBody, sendJson } from "./_lib/db.js";
 
 /**
  * POST /api/staff  { role, key }  -> { token, role, name, exp }

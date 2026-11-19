@@ -1,7 +1,7 @@
-import { createBlankPersonRuntime, createDefaultSnapshot } from "../adapters/simulationAdapter";
-import type { AuditEvent, CaseSnapshot, PersonRuntime } from "../adapters/types";
-import { passingSample } from "../content";
-import { getPresetById, type CasePresetId, type PersonId } from "./case";
+import { createBlankPersonRuntime, createDefaultSnapshot } from "../adapters/simulationAdapter.js";
+import type { AuditEvent, CaseSnapshot, PersonRuntime } from "../adapters/types.js";
+import { passingSample } from "../content.js";
+import { getPresetById, type CasePresetId, type PersonId } from "./case.js";
 
 /**
  * Sample couples for the demo access page, each stopped at a different point on the route,

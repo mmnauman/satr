@@ -1,8 +1,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { AuditEvent, CaseSnapshot } from "../../src/adapters/types";
-import { analyzeCase } from "../../src/domain/case";
-import { ensureSchema, getSql, hasDatabaseUrl } from "./db";
+import type { AuditEvent, CaseSnapshot } from "../../src/adapters/types.js";
+import { analyzeCase } from "../../src/domain/case.js";
+import { ensureSchema, getSql, hasDatabaseUrl } from "./db.js";
 
 /** One stored couple case: the full record plus the two applicants' capability tokens. */
 export type CaseRecord = {

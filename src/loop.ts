@@ -8,10 +8,10 @@ import {
   type CaseFiles,
   type Lang,
   type PersonId,
-} from "./content";
-import { forbiddenTokensForPatient } from "./domain/case";
-import { findMentionedGeneInText, GENE_CATALOG } from "./domain/genes";
-import { interpret, leakedTokens, MARRY_BAN, type Intent } from "./logic";
+} from "./content.js";
+import { forbiddenTokensForPatient } from "./domain/case.js";
+import { findMentionedGeneInText, GENE_CATALOG } from "./domain/genes.js";
+import { interpret, leakedTokens, MARRY_BAN, type Intent } from "./logic.js";
 
 /**
  * The assistant plans permissioned tool calls first, each tool sees only what this viewer

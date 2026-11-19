@@ -7,8 +7,8 @@ import type {
   PersonRuntime,
   SystemAggregateMetrics,
   ViewerRole,
-} from "../adapters/types";
-import { analyzeCase, otherPersonId, type PersonId } from "./case";
+} from "../adapters/types.js";
+import { analyzeCase, otherPersonId, type PersonId } from "./case.js";
 
 const PROCESS_CODES = new Set<AuditEvent["code"]>(["join", "open", "consent", "compiled", "passed", "book", "counsel", "view", "register"]);
 

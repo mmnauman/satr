@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { sanitizeScreeningNumber } from "../../src/adapters/reportParser";
-import { createBlankPersonRuntime, createDefaultSnapshot } from "../../src/adapters/simulationAdapter";
-import type { CaseSnapshot } from "../../src/adapters/types";
-import { createPersonFile, type PersonFile } from "../../src/domain/case";
-import { staffRoleOf } from "../_lib/auth";
-import { randomCapabilityToken, randomPairingCode, readJsonBody, sendJson } from "../_lib/db";
-import { computeSystemMetrics, counselorMayOpen, projectSnapshotForRole, summarizeCounselorCase, summarizeCourtCase } from "../_lib/projection";
-import { getRepo } from "../_lib/repo";
+import { sanitizeScreeningNumber } from "../../src/adapters/reportParser.js";
+import { createBlankPersonRuntime, createDefaultSnapshot } from "../../src/adapters/simulationAdapter.js";
+import type { CaseSnapshot } from "../../src/adapters/types.js";
+import { createPersonFile, type PersonFile } from "../../src/domain/case.js";
+import { staffRoleOf } from "../_lib/auth.js";
+import { randomCapabilityToken, randomPairingCode, readJsonBody, sendJson } from "../_lib/db.js";
+import { computeSystemMetrics, counselorMayOpen, projectSnapshotForRole, summarizeCounselorCase, summarizeCourtCase } from "../_lib/projection.js";
+import { getRepo } from "../_lib/repo.js";
 
 /**
  * GET  /api/cases?role=counselor  (counsellor token) -> booked cases only, as summaries

@@ -1,5 +1,5 @@
-import { createDefaultLaylaOmarFiles, createPersonFile, type PersonFile } from "../domain/case";
-import { computeSystemMetrics, summarizeCounselorCase } from "../domain/projection";
+import { createDefaultLaylaOmarFiles, createPersonFile, type PersonFile } from "../domain/case.js";
+import { computeSystemMetrics, summarizeCounselorCase } from "../domain/projection.js";
 import type {
   CaseSnapshot,
   CaseStoreAdapter,
@@ -7,7 +7,7 @@ import type {
   LiveSessionMeta,
   PersonRuntime,
   SystemAggregateMetrics,
-} from "./types";
+} from "./types.js";
 
 export function createBlankPersonRuntime(counselorFull = false): PersonRuntime {
   return {

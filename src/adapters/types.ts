@@ -1,7 +1,7 @@
-import type { CaseFiles, CasePresetId, PersonFile, PersonId } from "../domain/case";
-import type { Lang } from "../domain/genes";
-import type { AgentTurn } from "../loop";
-import type { Reason } from "../logic";
+import type { CaseFiles, CasePresetId, PersonFile, PersonId } from "../domain/case.js";
+import type { Lang } from "../domain/genes.js";
+import type { AgentTurn } from "../loop.js";
+import type { Reason } from "../logic.js";
 
 export type AppMode = "prototype" | "live";
 export type AdapterKind = "simulation" | "local" | "server" | "neon";
