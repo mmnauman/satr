@@ -812,3 +812,5 @@ body { background: transparent; }
 .hub-tile .muted { color: var(--on-night-muted); }
 .hub-tile:hover { transform: translateY(-2px); }
 @media (max-width: 760px) { .hub-more { grid-template-columns: 1fr; } }
+input.ws-invite-link { width: 100%; font-family: var(--mono); font-size: 13px; color: var(--ink); padding: 11px 14px; cursor: text; }
+input.ws-invite-link:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201, 151, 58, 0.2); }

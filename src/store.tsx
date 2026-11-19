@@ -42,6 +42,7 @@ import {
 } from "./domain/case";
 import type { Lang } from "./domain/genes";
 import { scoreAnswer } from "./logic";
+import { hashToRoute } from "./routing";
 
 export type {
   AdapterKind,
@@ -438,8 +439,9 @@ function reduce(state: State, action: Action): State {
         focus: action.focus ?? state.focus,
         appMode: action.appMode ?? state.appMode,
         view: action.view ?? state.view,
-        // Preserve locally typed drafts so background sync never wipes active typing
-        people: {
+        // Preserve locally typed drafts so background sync never wipes active typing.
+        // When the person changes (focus given), nothing carries over from the previous one.
+        people: action.focus !== undefined ? s.people : {
           layla: {
             ...s.people.layla,
             draft: state.people.layla.draft || s.people.layla.draft,
@@ -588,6 +590,32 @@ function saveStaffSession(meta: StaffSession | null) {
 /** The view each staff role works in. */
 export const STAFF_VIEW: Record<StaffRole, View> = { counselor: "counselor", court: "court", system: "system" };
 
+const PEOPLE_ADDED_KEY = "satr:demo:mine:v1";
+
+/** Keeps a person this tab was signed in as, so they can be picked again from the Demo bar. */
+function rememberPerson(session: LiveSessionMeta, name: { en: string; ar: string }) {
+  type Person = { code: string; slot: PersonId; token: string; name: { en: string; ar: string } };
+  try {
+    const list = JSON.parse(window.localStorage.getItem(PEOPLE_ADDED_KEY) ?? "[]") as Person[];
+    const rest = list.filter((p) => !(p.code === session.pairingCode && p.slot === session.slot));
+    const next: Person[] = [{ code: session.pairingCode, slot: session.slot, token: session.token, name }, ...rest].slice(0, 12);
+    window.localStorage.setItem(PEOPLE_ADDED_KEY, JSON.stringify(next));
+    window.dispatchEvent(new Event("satr-demo-updated"));
+  } catch {
+    /* private window: nothing to remember */
+  }
+}
+
+/** A tab opened from an invite link never stays signed in as someone else. */
+function sessionParkedForJoin(): LiveSessionMeta | null {
+  if (typeof window === "undefined") return null;
+  const stored = loadStoredSession();
+  const join = hashToRoute(window.location.hash)?.joinCode;
+  if (!stored || !join) return null;
+  saveStoredSession(null);
+  return stored;
+}
+
 export type SatrContextValue = {
   state: State;
   dispatch: Dispatch<Action>;
@@ -620,6 +648,8 @@ export type SatrContextValue = {
   systemError: string | null;
   resumeLiveCase: (pairingCode: string, token: string) => Promise<boolean>;
   deleteMyReport: () => Promise<void>;
+  switchToJoin: () => void;
+  switchedFrom: { en: string; ar: string } | null;
   courtCases: CourtCaseSummary[];
 };
 
@@ -628,7 +658,10 @@ const Ctx = createContext<SatrContextValue | null>(null);
 export function SatrProvider({ children }: { children: ReactNode }) {
   const [state, rawDispatch] = useReducer(reduce, undefined, () => freshState());
   const [liveBackendKind, setLiveBackendKind] = useState<AdapterKind>("local");
+  const parkedAtStart = useRef<LiveSessionMeta | null | undefined>(undefined);
+  if (parkedAtStart.current === undefined) parkedAtStart.current = sessionParkedForJoin();
   const [liveSession, setLiveSession] = useState<LiveSessionMeta | null>(() => loadStoredSession());
+  const [switchedFrom, setSwitchedFrom] = useState<{ en: string; ar: string } | null>(null);
   const [systemMetrics, setSystemMetrics] = useState<SystemAggregateMetrics | null>(null);
   const [counselorCases, setCounselorCases] = useState<CounselorCaseSummary[]>([]);
   const [courtCases, setCourtCases] = useState<CourtCaseSummary[]>([]);
@@ -880,6 +913,30 @@ export function SatrProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
+  // Set the current person aside (remembered for the Demo bar) and show the join form instead.
+  const parkSession = useCallback(async (session: LiveSessionMeta) => {
+    const snap = await neonApiCaseAdapter
+      .fetchCase({ pairingCode: session.pairingCode, role: "participant", token: session.token })
+      .catch(() => null);
+    const name = snap?.files[session.slot]?.name ?? { en: session.pairingCode, ar: session.pairingCode };
+    rememberPerson(session, name);
+    setSwitchedFrom(name);
+  }, []);
+
+  useEffect(() => {
+    const parked = parkedAtStart.current;
+    if (parked) void parkSession(parked);
+  }, [parkSession]);
+
+  const switchToJoin = useCallback(() => {
+    if (!liveSession) return;
+    const current = liveSession;
+    saveStoredSession(null);
+    setLiveSession(null);
+    rawDispatch({ type: "reset" });
+    void parkSession(current);
+  }, [liveSession, parkSession]);
+
   const deleteMyReport = useCallback(async () => {
     if (!liveSession) return;
     await neonApiCaseAdapter.deleteParticipant(liveSession.pairingCode, liveSession.token);
@@ -963,6 +1020,8 @@ export function SatrProvider({ children }: { children: ReactNode }) {
         systemError,
         resumeLiveCase,
         deleteMyReport,
+        switchToJoin,
+        switchedFrom,
         courtCases,
       }}
     >

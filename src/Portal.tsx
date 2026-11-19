@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { AuditEvent, Interest } from "./adapters/types";
 import type { PersonId } from "./domain/case";
 import { ease } from "./fx";
+import { copyText } from "./copy";
 import { signInLink } from "./routing";
 import { ActivityLog, Ledger } from "./Stage";
 import { t, type Strings } from "./strings";
@@ -17,6 +18,7 @@ export function SignInLinkPanel() {
   const { state, liveSession } = useSatr();
   const c = t(state.lang);
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   if (!liveSession) return null;
   const link = signInLink(liveSession.pairingCode, liveSession.token);
   return (
@@ -32,16 +34,20 @@ export function SignInLinkPanel() {
         <button
           type="button"
           className="btn btn-quiet btn-sm"
-          onClick={() => {
-            void navigator.clipboard?.writeText(link);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2400);
+          onClick={async () => {
+            const ok = await copyText(link);
+            setCopied(ok);
+            setFailed(!ok);
+            if (ok) window.setTimeout(() => setCopied(false), 2400);
           }}
         >
           <Icon name={copied ? "check" : "copy"} size={14} />
           {copied ? c.signinCopied : c.signinCopy}
         </button>
       </div>
+      {failed && (
+        <input className="ws-invite-link" readOnly value={link} aria-label={c.signinLinkT} onFocus={(e) => e.currentTarget.select()} />
+      )}
     </section>
   );
 }

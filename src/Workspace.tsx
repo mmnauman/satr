@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { useEffect, useState, type FormEvent } from "react";
+import { canShare, copyText } from "./copy";
 import { hashToRoute, inviteLink, joinCodeFromLocation } from "./routing";
 import { defaultReportParser, SAMPLE_REPORT_FILES, type ParsedReport } from "./adapters/reportParser";
 import { createPersonFile, otherPersonId, type PersonFile, type PersonId } from "./domain/case";
@@ -22,6 +23,7 @@ export function Workspace() {
     joinLiveCase,
     leaveLiveCase,
     switchMode,
+    switchedFrom,
   } = useSatr();
   const c = t(state.lang);
 
@@ -39,7 +41,7 @@ export function Workspace() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"screening" | "path" | "privacy">("screening");
   const [path, setPath] = useState<"start" | "join">(() => (joinCodeFromLocation() ? "join" : "start"));
   const [invited, setInvited] = useState(() => Boolean(joinCodeFromLocation()));
@@ -201,6 +203,12 @@ export function Workspace() {
           <p className="feedback feedback-good">
             <Icon name="link" size={16} />
             {c.wsInvitedBanner}
+          </p>
+        )}
+        {invited && switchedFrom && (
+          <p className="feedback feedback-warn">
+            <Icon name="info" size={16} />
+            {fill(c.joinSwitchedNotice, { name: switchedFrom[state.lang] })}
           </p>
         )}
 
@@ -430,10 +438,10 @@ export function Workspace() {
           <button
             type="button"
             className="btn btn-quiet btn-sm"
-            onClick={() => {
-              void navigator.clipboard?.writeText(state.pairingCode ?? "");
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1800);
+            onClick={async () => {
+              const ok = await copyText(state.pairingCode ?? "");
+              setCopied(ok);
+              if (ok) window.setTimeout(() => setCopied(false), 1800);
             }}
           >
             <Icon name={copied ? "check" : "copy"} size={14} />
@@ -482,25 +490,51 @@ export function Workspace() {
             </h3>
             <p className="muted small">{c.inviteLinkB}</p>
           </div>
-          <code className="ws-invite-link">{inviteLink(state.pairingCode)}</code>
+          <input
+            className="ws-invite-link"
+            readOnly
+            value={inviteLink(state.pairingCode)}
+            aria-label={c.inviteLinkT}
+            onFocus={(e) => e.currentTarget.select()}
+            onClick={(e) => e.currentTarget.select()}
+          />
+          {linkCopied === false && (
+            <p className="feedback feedback-warn" role="status">
+              <Icon name="info" size={16} />
+              {c.inviteCopyFailed}
+            </p>
+          )}
           <div className="ws-invite-actions">
             <button
               type="button"
               className="btn btn-primary btn-sm"
-              onClick={() => {
-                void navigator.clipboard?.writeText(inviteLink(state.pairingCode ?? ""));
-                setLinkCopied(true);
-                window.setTimeout(() => setLinkCopied(false), 1800);
+              onClick={async () => {
+                const ok = await copyText(inviteLink(state.pairingCode ?? ""));
+                setLinkCopied(ok);
+                if (ok) window.setTimeout(() => setLinkCopied(null), 2200);
               }}
             >
               <Icon name={linkCopied ? "check" : "copy"} size={14} />
               {linkCopied ? c.inviteCopied : c.inviteCopy}
             </button>
-            {typeof navigator !== "undefined" && "share" in navigator && (
+            <a
+              className="btn btn-quiet btn-sm"
+              href={`https://wa.me/?text=${encodeURIComponent(`${fill(c.inviteMessage, { name: myFile.name[state.lang] })} ${inviteLink(state.pairingCode)}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name="chat" size={14} />
+              {c.inviteWhatsApp}
+            </a>
+            {canShare() && (
               <button
                 type="button"
                 className="btn btn-quiet btn-sm"
-                onClick={() => void navigator.share({ title: c.brand, text: c.inviteLinkB, url: inviteLink(state.pairingCode ?? "") }).catch(() => undefined)}
+                onClick={() =>
+                  void navigator
+                    .share({ title: c.brand, text: fill(c.inviteMessage, { name: myFile.name[state.lang] }), url: inviteLink(state.pairingCode ?? "") })
+                    .catch(() => undefined)
+                }
               >
                 <Icon name="send" size={14} />
                 {c.inviteShare}

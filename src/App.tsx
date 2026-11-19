@@ -172,10 +172,12 @@ const STAFF_ONLY: Partial<Record<View, StaffRole>> = { counselor: "counselor", c
 
 /** Keeps the address bar and the current screen in step, both ways. */
 function useHashRoute() {
-  const { state, dispatch, switchMode, resumeLiveCase } = useSatr();
+  const { state, dispatch, switchMode, resumeLiveCase, liveSession, switchToJoin } = useSatr();
   const ref = useRef(state);
+  const sessionRef = useRef({ liveSession, switchToJoin });
   useEffect(() => {
     ref.current = state;
+    sessionRef.current = { liveSession, switchToJoin };
   });
 
   useEffect(() => {
@@ -186,6 +188,11 @@ function useHashRoute() {
         // Take the private token out of the address bar and history straight away.
         window.history.replaceState(null, "", "#/me");
         void resumeLiveCase(route.signin.code, route.signin.token);
+        return;
+      }
+      // An invite link opened in a tab that is signed in as someone else shows the join form.
+      if (route.joinCode && sessionRef.current.liveSession) {
+        sessionRef.current.switchToJoin();
         return;
       }
       const cur = ref.current;

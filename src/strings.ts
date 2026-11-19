@@ -838,6 +838,10 @@ const en = {
   hubSwitch: "Switch to…",
   hubMine: "People you added",
   hubBack: "Demo hub",
+  inviteCopyFailed: "This browser didn’t let Satr copy the link. Tap the link above to select it, then copy it, or send it on WhatsApp.",
+  inviteWhatsApp: "Send on WhatsApp",
+  inviteMessage: "{name} invited you to Satr to look at your premarital screening together, privately. Open this link and add your own report:",
+  joinSwitchedNotice: "This tab was signed in as {name}. To join as the partner, add your own report below. {name} can come back any time with their private sign-in link.",
 };
 
 export type Strings = typeof en;
@@ -1659,6 +1663,10 @@ const ar: Strings = {
   hubSwitch: "بدّل إلى…",
   hubMine: "أشخاص أضفتهم",
   hubBack: "مركز العرض",
+  inviteCopyFailed: "لم يسمح هذا المتصفح لستر بنسخ الرابط. اضغط على الرابط في الأعلى لتحديده ثم انسخه، أو أرسله عبر واتساب.",
+  inviteWhatsApp: "أرسل عبر واتساب",
+  inviteMessage: "دعاك {name} إلى ستر لتطّلعا معاً وبخصوصية على نتائج الفحص قبل الزواج. افتح هذا الرابط وأضف تقريرك:",
+  joinSwitchedNotice: "كان هذا التبويب مسجّلاً باسم {name}. لتنضم بصفتك الشريك، أضف تقريرك في الأسفل. ويمكن لـ{name} العودة متى شاء برابط دخوله الخاص.",
 };
 
 export function t(lang: Lang): Strings {
