@@ -1,25 +1,33 @@
-import { AnimatePresence, motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
-import { useRef, useState } from "react";
-import { CountUp, Magnetic, Reveal, rise, SplitWords, Spotlight, stagger, VideoBg } from "./fx";
+import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
+import { useRef, useState, type FormEvent } from "react";
+import { CountUp, Reveal, rise, SplitWords, Spotlight, stagger, VideoBg } from "./fx";
 import { CREDITS, PHOTO, VIDEO } from "./media";
-import { ChatDemo, MatchPlayground, RoleLens, Simulator } from "./Playground";
+import { LiveAsk, RouteSection } from "./Journey";
+import { MatchPlayground, RoleLens, Simulator } from "./Playground";
 import { t, type Strings } from "./strings";
 import { useSatr } from "./store";
 import { Icon, Mark, Seal, type IconName } from "./visuals";
 
 export function Landing() {
-  const { state, dispatch } = useSatr();
+  const { state, switchMode } = useSatr();
   const c = t(state.lang);
-  const start = () => dispatch({ type: "view", view: "stage" });
+  const start = () => switchMode("live", "access");
+  const openLive = () => switchMode("live", "workspace");
+  const [handoff, setHandoff] = useState<{ q: string; n: number } | null>(null);
+  const askFromPoster = (q: string) => {
+    setHandoff((prev) => ({ q, n: (prev?.n ?? 0) + 1 }));
+    document.getElementById("ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <main className="landing">
-      <Hero c={c} start={start} />
+      <Hero c={c} start={start} openLive={openLive} onAsk={askFromPoster} />
       <Ticker c={c} />
       <Stats c={c} />
+      <LiveAsk incoming={handoff} openLive={openLive} />
       <Culture c={c} />
       <Harms c={c} />
-      <HowScrolly c={c} />
+      <RouteSection />
 
       <section className="section section-night" id="match">
         <div className="glow glow-a" aria-hidden="true" />
@@ -63,19 +71,6 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="section section-sand">
-        <div className="wrap assistant-split">
-          <Reveal>
-            <p className="eyebrow">{c.aiKicker}</p>
-            <h2>{c.aiTitle}</h2>
-            <p className="lead">{c.aiBody}</p>
-          </Reveal>
-          <Reveal delay={0.15}>
-            <ChatDemo />
-          </Reveal>
-        </div>
-      </section>
-
       <Outcomes c={c} />
 
       <section className="cta">
@@ -92,12 +87,16 @@ export function Landing() {
             <p>{c.ctaBody}</p>
           </Reveal>
           <Reveal delay={0.3}>
-            <Magnetic>
-              <button type="button" className="btn btn-gold btn-xl" onClick={start}>
-                <Icon name="play" size={18} />
-                {c.tryDemo}
+            <div className="hero-ctas" style={{ justifyContent: "center" }}>
+              <button type="button" className="btn btn-gold btn-xl btn-hero" onClick={openLive}>
+                <Icon name="upload" size={18} />
+                {c.posterStart}
               </button>
-            </Magnetic>
+              <button type="button" className="btn btn-glass btn-xl" onClick={start}>
+                <Icon name="play" size={18} />
+                {c.posterDemo}
+              </button>
+            </div>
           </Reveal>
         </div>
       </section>
@@ -118,7 +117,12 @@ export function Landing() {
   );
 }
 
-function Hero({ c, start }: { c: Strings; start: () => void }) {
+function Hero({ c, start, openLive, onAsk }: { c: Strings; start: () => void; openLive: () => void; onAsk: (q: string) => void }) {
+  const [q, setQ] = useState("");
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (q.trim()) onAsk(q.trim());
+  };
   const ref = useRef<HTMLElement>(null);
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -155,32 +159,45 @@ function Hero({ c, start }: { c: Strings; start: () => void }) {
       <div className="hero-pattern" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
 
-      <motion.div className="hero-inner" style={{ opacity: fade }}>
-        <div className="hero-copy">
+      <motion.div className="hero-inner poster" style={{ opacity: fade }}>
+        <div className="poster-copy">
           <motion.p className="eyebrow eyebrow-light hero-eyebrow" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
             <span className="live-dot" />
             {c.heroEyebrow}
           </motion.p>
-          <h1>
-            <SplitWords text={c.heroTitle} />
+          <h1 className="poster-title" aria-label={`${c.posterA} ${c.posterJoin} ${c.posterB}`}>
+            <PosterLine className="pt-a" delay={0.15}>{c.posterA}</PosterLine>
+            <PosterLine className="pt-join" delay={0.4}>{c.posterJoin}</PosterLine>
+            <PosterLine className="pt-b" delay={0.6}>{c.posterB}</PosterLine>
           </h1>
-          <motion.p className="hero-lead" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.9 }}>
-            {c.heroLead}
+          <motion.p className="poster-lead" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.9 }}>
+            {c.posterLead}
           </motion.p>
-          <motion.div className="hero-ctas" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 1.1 }}>
-            <Magnetic>
-              <button type="button" className="btn btn-gold btn-lg btn-shine" onClick={start}>
-                <Icon name="play" size={18} />
-                {c.tryDemo}
-              </button>
-            </Magnetic>
-            <a className="btn btn-glass btn-lg" href="#how">
-              {c.seeHow}
-            </a>
+          <motion.form className="poster-ask" onSubmit={submit} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 1.05 }}>
+            <Icon name="chat" size={20} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={c.posterAskPh} aria-label={c.posterAskLabel} />
+            <button type="submit" className="btn btn-gold" disabled={!q.trim()}>
+              {c.posterAskGo}
+              <Icon name="arrowRight" size={16} className="flip-rtl" />
+            </button>
+          </motion.form>
+          <motion.p className="poster-hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}>
+            <Icon name="shieldCheck" size={14} />
+            {c.posterAskHint}
+          </motion.p>
+          <motion.div className="hero-ctas poster-ctas" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 1.2 }}>
+            <button type="button" className="btn btn-gold btn-lg btn-hero" onClick={openLive}>
+              <Icon name="upload" size={18} />
+              {c.posterStart}
+            </button>
+            <button type="button" className="btn btn-glass btn-lg" onClick={start}>
+              <Icon name="play" size={18} />
+              {c.posterDemo}
+            </button>
           </motion.div>
         </div>
 
-        <div className="hero-notes" aria-hidden="true">
+        <div className="hero-notes poster-notes" aria-hidden="true">
           {cards.map((card) => (
             <FloatCard key={card.title} card={card} sx={sx} sy={sy} />
           ))}
@@ -192,6 +209,20 @@ function Hero({ c, start }: { c: Strings; start: () => void }) {
         {c.scrollCue}
       </motion.a>
     </section>
+  );
+}
+
+function PosterLine({ children, className, delay }: { children: string; className: string; delay: number }) {
+  return (
+    <span className={`poster-line ${className}`} aria-hidden="true">
+      <motion.span
+        initial={{ y: "105%", opacity: 0 }}
+        animate={{ y: "0%", opacity: 1 }}
+        transition={{ duration: 1, delay, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {children}
+      </motion.span>
+    </span>
   );
 }
 
@@ -400,150 +431,6 @@ function Harms({ c }: { c: Strings }) {
         </motion.div>
       </div>
     </section>
-  );
-}
-
-function HowScrolly({ c }: { c: Strings }) {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const [active, setActive] = useState(0);
-  useMotionValueEvent(scrollYProgress, "change", (v) => setActive(Math.min(3, Math.floor(v * 4))));
-  const bar = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
-  const steps: { icon: IconName; title: keyof Strings; body: keyof Strings }[] = [
-    { icon: "lock", title: "how1t", body: "how1b" },
-    { icon: "shieldCheck", title: "how2t", body: "how2b" },
-    { icon: "pen", title: "how3t", body: "how3b" },
-    { icon: "steth", title: "how4t", body: "how4b" },
-  ];
-
-  return (
-    <section ref={ref} className="pin pin-how" id="how">
-      <div className="pin-sticky pin-sticky-light">
-        <div className="wrap how">
-          <div className="how-copy">
-            <p className="eyebrow">{c.howKicker}</p>
-            <h2>{c.howTitle}</h2>
-            <p className="lead">{c.howSub}</p>
-            <div className="how-steps">
-              <div className="how-rail">
-                <motion.span style={{ height: bar }} />
-              </div>
-              <ol>
-                {steps.map((step, i) => (
-                  <li key={step.title} className={i === active ? "is-on" : ""}>
-                    <span className="how-icon">
-                      <Icon name={step.icon} size={18} />
-                    </span>
-                    <div>
-                      <h3>{c[step.title]}</h3>
-                      <AnimatePresence initial={false}>
-                        {i === active && (
-                          <motion.p initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.4 }}>
-                            {c[step.body]}
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-          <div className="how-device">
-            <div className="how-photo">
-              <img src={PHOTO.phoneStreet} alt="" loading="lazy" />
-            </div>
-            <div className="mock">
-              <div className="mock-notch" />
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={active}
-                  className="mock-screen"
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <MockScreen step={active} c={c} />
-                </motion.div>
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MockScreen({ step, c }: { step: number; c: Strings }) {
-  if (step === 0) {
-    return (
-      <div className="mock-center">
-        <motion.div className="mock-seal" animate={{ rotate: [0, -4, 4, 0] }} transition={{ duration: 2.4, repeat: Infinity }}>
-          <Icon name="lock" size={30} />
-        </motion.div>
-        <p className="mock-tag">{c.phoneSealed}</p>
-        <h4>{c.sealedT}</h4>
-        <p>{c.n1b}</p>
-        <span className="mock-btn">{c.ctaOpen}</span>
-      </div>
-    );
-  }
-  if (step === 1) {
-    return (
-      <div className="mock-center">
-        <div className="mock-hs">
-          <span className="avatar avatar-lg is-yes">L</span>
-          <motion.span className="mock-link" initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.8, delay: 0.2 }} />
-          <span className="avatar avatar-lg is-yes">O</span>
-        </div>
-        <p className="mock-tag">{c.phoneAgree}</p>
-        <motion.div className="mock-gene" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", delay: 0.8 }}>
-          USH2A
-        </motion.div>
-        <p>{c.togetherSub}</p>
-      </div>
-    );
-  }
-  if (step === 2) {
-    return (
-      <div className="mock-form">
-        <p className="mock-tag">{c.phoneExplain}</p>
-        <h4>{c.chipCarrier}</h4>
-        <div className="mock-input">
-          <TypeOut text="I carry a change, but I’m healthy. It isn’t a diagnosis." />
-        </div>
-        <motion.p className="mock-ok" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2 }}>
-          <Icon name="check" size={14} /> {c.explainedT}
-        </motion.p>
-      </div>
-    );
-  }
-  return (
-    <div className="mock-center">
-      <p className="mock-tag">{c.phoneCare}</p>
-      <div className="mock-card">
-        <Icon name="calendar" size={18} />
-        <span>{c.slot2}</span>
-      </div>
-      <motion.div initial={{ scale: 1.6, opacity: 0, rotate: -12 }} animate={{ scale: 1, opacity: 1, rotate: -4 }} transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 14 }}>
-        <Seal size={90} />
-      </motion.div>
-      <h4>{c.certIssued}</h4>
-      <p>{c.certFooter}</p>
-    </div>
-  );
-}
-
-function TypeOut({ text }: { text: string }) {
-  return (
-    <span>
-      {text.split("").map((ch, i) => (
-        <motion.span key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.025 }}>
-          {ch}
-        </motion.span>
-      ))}
-    </span>
   );
 }
 

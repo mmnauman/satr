@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:lan": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "check": "vite build --ssr scripts/check.ts --outDir node_modules/.check --emptyOutDir --logLevel warn && node node_modules/.check/check.js"
+    "check": "vite build --ssr scripts/check.ts --outDir node_modules/.check --emptyOutDir --logLevel warn && node node_modules/.check/check.js",
+    "build:server": "vite build --ssr server/index.ts --outDir dist-server --emptyOutDir --logLevel warn",
+    "start": "node dist-server/index.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
     "motion": "12.43.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

@@ -1,8 +1,14 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { PEOPLE, TOGETHER, intersectionGenes, inviteText, partnerOf, prompts, type PersonId } from "./content";
+import { intersectionGenes, inviteText, partnerOf, prompts, type PersonId } from "./content";
+import {
+  allCaseSensitiveTokens,
+  noSharedFindingsBody,
+  personalEscalationFindings,
+  sharedGeneBody,
+} from "./domain/case";
 import { ease } from "./fx";
-import { ALL_GENE_TOKENS, leakedTokens } from "./logic";
+import { leakedTokens } from "./logic";
 import { renderTurn } from "./loop";
 import { fill, reasonText, t, type Strings } from "./strings";
 import { isCompiled, isExplained, isReleased, useSatr, type Interest, type Screen, type Slot, type State } from "./store";
@@ -19,13 +25,14 @@ const TABS: { screen: Screen; icon: IconName; key: keyof Strings }[] = [
 function usePerson(id: PersonId) {
   const { state, dispatch } = useSatr();
   const c = t(state.lang);
-  const file = PEOPLE[id];
-  const partner = partnerOf(id);
+  const file = state.files[id];
+  const partner = partnerOf(id, state.files);
   return {
     state,
     dispatch,
     c,
     file,
+    partner,
     person: state.people[id],
     name: file.name[state.lang],
     partnerName: partner.name[state.lang],
@@ -33,8 +40,8 @@ function usePerson(id: PersonId) {
   };
 }
 
-export function Phone({ id }: { id: PersonId }) {
-  const { state, dispatch, c, person, name } = usePerson(id);
+export function Phone({ id, onEditReport }: { id: PersonId; onEditReport?: () => void }) {
+  const { state, dispatch, c, file, person, name } = usePerson(id);
   const scroller = useRef<HTMLDivElement>(null);
   const active = person.screen === "family" ? "home" : person.screen;
 
@@ -43,7 +50,10 @@ export function Phone({ id }: { id: PersonId }) {
   }, [person.screen]);
 
   return (
-    <div className={state.focus === id ? "phone is-focus" : "phone"} onPointerDown={() => state.focus !== id && dispatch({ type: "focus", id })}>
+    <div
+      className={state.focus === id ? "phone is-focus" : "phone"}
+      onPointerDown={() => state.focus !== id && dispatch({ type: "focus", id })}
+    >
       <div className="phone-notch" aria-hidden="true" />
       <div className="phone-status" aria-hidden="true">
         <span>9:41</span>
@@ -57,6 +67,12 @@ export function Phone({ id }: { id: PersonId }) {
           <span>{c.brand}</span>
         </div>
         <div className="phone-head-tools">
+          {onEditReport && (
+            <button type="button" className="pill-toggle" onClick={onEditReport} title={c.uploadReport}>
+              <Icon name="upload" size={13} />
+              <span>{state.lang === "ar" ? "تقرير" : "Report"}</span>
+            </button>
+          )}
           <button
             type="button"
             className={person.simple ? "pill-toggle is-on" : "pill-toggle"}
@@ -67,7 +83,7 @@ export function Phone({ id }: { id: PersonId }) {
             {c.simpleOn}
           </button>
           <span className="avatar" aria-label={name}>
-            {PEOPLE[id].initial[state.lang]}
+            {file.initial[state.lang]}
           </span>
         </div>
       </header>
@@ -82,8 +98,8 @@ export function Phone({ id }: { id: PersonId }) {
             exit={{ opacity: 0, x: -24 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            {person.screen === "home" && <Home id={id} />}
-            {person.screen === "result" && <ResultScreen id={id} />}
+            {person.screen === "home" && <Home id={id} onEditReport={onEditReport} />}
+            {person.screen === "result" && <ResultScreen id={id} onEditReport={onEditReport} />}
             {person.screen === "share" && <ShareScreen id={id} />}
             {person.screen === "explain" && <ExplainScreen id={id} />}
             {person.screen === "ask" && <AskScreen id={id} />}
@@ -177,7 +193,7 @@ function journey(state: State, id: PersonId): JourneyState[] {
   ];
 }
 
-function Home({ id }: { id: PersonId }) {
+function Home({ id, onEditReport }: { id: PersonId; onEditReport?: () => void }) {
   const { state, dispatch, c, person, name, partnerName, compiled } = usePerson(id);
   const steps = journey(state, id);
   const labels = [c.j1, c.j2, c.j3, c.j4, c.j5];
@@ -216,6 +232,12 @@ function Home({ id }: { id: PersonId }) {
           {cta}
           <Icon name="arrowRight" size={16} className="flip-rtl" />
         </button>
+        {onEditReport && (
+          <button type="button" className="btn btn-quiet btn-block btn-sm phone-upload-cta" onClick={onEditReport}>
+            <Icon name="upload" size={15} />
+            {c.uploadReport}
+          </button>
+        )}
       </section>
 
       <section className="card">
@@ -267,10 +289,11 @@ function Home({ id }: { id: PersonId }) {
   );
 }
 
-function ResultScreen({ id }: { id: PersonId }) {
+function ResultScreen({ id, onEditReport }: { id: PersonId; onEditReport?: () => void }) {
   const { state, dispatch, c, file, person, partnerName, compiled } = usePerson(id);
   const [learn, setLearn] = useState(false);
-  const shared = new Set(intersectionGenes());
+  const shared = new Set(intersectionGenes(state.files));
+  const specialFindings = personalEscalationFindings(file);
   const reduceMotion = useReducedMotion();
 
   if (!person.opened) {
@@ -285,6 +308,12 @@ function ResultScreen({ id }: { id: PersonId }) {
           <button type="button" className="btn btn-primary btn-block" onClick={() => dispatch({ type: "open", id })}>
             {c.ctaOpen}
           </button>
+          {onEditReport && (
+            <button type="button" className="btn btn-quiet btn-block btn-sm" onClick={onEditReport}>
+              <Icon name="upload" size={15} />
+              {c.uploadReport}
+            </button>
+          )}
           <p className="fine">{c.sealedNote}</p>
         </div>
       </div>
@@ -295,50 +324,92 @@ function ResultScreen({ id }: { id: PersonId }) {
     <div className="screen">
       <header className="screen-head">
         <h2>{c.resultT}</h2>
-        <p>{fill(c.resultB, { n: file.findings.length })}</p>
+        <p>{file.findings.length === 0 ? c.resultZero : fill(c.resultB, { n: file.findings.length })}</p>
+        {onEditReport && (
+          <button type="button" className="btn btn-quiet btn-sm phone-inline-upload" onClick={onEditReport}>
+            <Icon name="upload" size={14} />
+            {c.uploadReport}
+          </button>
+        )}
       </header>
-      {file.findings.map((finding, i) => {
-        const isShared = shared.has(finding.gene);
-        const tag = !isShared ? c.tagPrivate : compiled ? c.tagShared : c.tagMaybe;
-        const text = person.simple ? finding.simple[state.lang] : finding.body[state.lang];
-        return (
-          <motion.article
-            key={finding.gene}
-            className={isShared && compiled ? "finding finding-shared" : "finding"}
-            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: reduceMotion ? 0 : 0.08 + i * 0.12, ease }}
-          >
-            <div className="finding-top">
-              <div>
-                <p className="gene">{finding.gene}</p>
-                <p className="condition">{finding.condition[state.lang]}</p>
+
+      {file.findings.length === 0 ? (
+        <motion.article
+          className="card card-good"
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease }}
+        >
+          <div className="finding-top">
+            <h3 className="card-title">
+              <Icon name="shieldCheck" size={18} />
+              {c.clearCardT}
+            </h3>
+            <Listen text={`${c.clearCardT}. ${c.clearCardB}`} />
+          </div>
+          <p className="finding-body">{c.clearCardB}</p>
+        </motion.article>
+      ) : (
+        file.findings.map((finding, i) => {
+          const isShared = shared.has(finding.gene);
+          const tag = !isShared ? c.tagPrivate : compiled ? c.tagShared : c.tagMaybe;
+          const text = person.simple ? finding.simple[state.lang] : finding.body[state.lang];
+          const statusTag =
+            finding.classification === "vus"
+              ? c.tagVus
+              : finding.inheritance === "x_linked"
+                ? c.tagXLinked
+                : c.riskCarrier;
+          return (
+            <motion.article
+              key={finding.gene}
+              className={isShared && compiled ? "finding finding-shared" : "finding"}
+              initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: reduceMotion ? 0 : 0.08 + i * 0.12, ease }}
+            >
+              <div className="finding-top">
+                <div>
+                  <p className="gene">{finding.gene}</p>
+                  <p className="condition">{finding.condition[state.lang]}</p>
+                </div>
+                <Listen text={`${finding.condition[state.lang]}. ${text}`} />
               </div>
-              <Listen text={`${finding.condition[state.lang]}. ${text}`} />
-            </div>
-            <div className="finding-tags">
-              <span className={isShared && compiled ? "tag tag-gold" : isShared ? "tag" : "tag tag-lock"}>
-                <Icon name={isShared && compiled ? "users" : "lock"} size={12} />
-                {tag}
-              </span>
-              <span className="tag tag-calm">
-                <Icon name="heart" size={12} />
-                {c.riskCarrier}
-              </span>
-            </div>
-            {person.simple ? (
-              <div className="simple-card">
-                <span className="simple-figure" aria-hidden="true">
-                  <Icon name="heart" size={26} />
+              <div className="finding-tags">
+                <span className={isShared && compiled ? "tag tag-gold" : isShared ? "tag" : "tag tag-lock"}>
+                  <Icon name={isShared && compiled ? "users" : "lock"} size={12} />
+                  {tag}
                 </span>
-                <p className="simple-text">{text}</p>
+                <span className={finding.classification === "vus" ? "tag" : "tag tag-calm"}>
+                  <Icon name={finding.classification === "vus" ? "steth" : "heart"} size={12} />
+                  {statusTag}
+                </span>
               </div>
-            ) : (
-              <p className="finding-body">{text}</p>
-            )}
-          </motion.article>
-        );
-      })}
+              {person.simple ? (
+                <div className="simple-card">
+                  <span className="simple-figure" aria-hidden="true">
+                    <Icon name="heart" size={26} />
+                  </span>
+                  <p className="simple-text">{text}</p>
+                </div>
+              ) : (
+                <p className="finding-body">{text}</p>
+              )}
+            </motion.article>
+          );
+        })
+      )}
+
+      {specialFindings.length > 0 && (
+        <section className="card card-quiet">
+          <h3 className="card-title">
+            <Icon name="steth" size={17} />
+            {c.personalEscalateT}
+          </h3>
+          <p className="muted small">{c.personalEscalateB}</p>
+        </section>
+      )}
+
       <section className="card">
         <button type="button" className="disclosure" aria-expanded={learn} onClick={() => setLearn(!learn)}>
           <Icon name="info" size={18} />
@@ -378,8 +449,8 @@ function useFreshMatch(compiledAt: number | undefined) {
 }
 
 function ShareScreen({ id }: { id: PersonId }) {
-  const { state, dispatch, c, person, name, partnerName, compiled } = usePerson(id);
-  const partner = state.people[partnerOf(id).id];
+  const { state, dispatch, c, file, partner: partnerFile, person, name, partnerName, compiled } = usePerson(id);
+  const partner = state.people[partnerFile.id];
   const compiledAt = state.audit.find((event) => event.code === "compiled")?.at;
   const matching = useFreshMatch(compiledAt);
   const reduceMotion = useReducedMotion();
@@ -409,7 +480,7 @@ function ShareScreen({ id }: { id: PersonId }) {
         </header>
         <div className="handshake">
           <div className={person.consented ? "hs-person is-yes" : "hs-person"}>
-            <span className="avatar avatar-lg">{PEOPLE[id].initial[state.lang]}</span>
+            <span className="avatar avatar-lg">{file.initial[state.lang]}</span>
             <strong>{c.you}</strong>
             <span>{person.consented ? c.agreed : c.notYet}</span>
           </div>
@@ -417,7 +488,7 @@ function ShareScreen({ id }: { id: PersonId }) {
             <Icon name={matching ? "refresh" : "lock"} size={18} className={matching ? "spin" : ""} />
           </div>
           <div className={partner.consented ? "hs-person is-yes" : "hs-person"}>
-            <span className="avatar avatar-lg">{partnerOf(id).initial[state.lang]}</span>
+            <span className="avatar avatar-lg">{partnerFile.initial[state.lang]}</span>
             <strong>{partnerName}</strong>
             <span>{partner.consented ? c.agreed : c.notYet}</span>
           </div>
@@ -456,45 +527,76 @@ function ShareScreen({ id }: { id: PersonId }) {
     );
   }
 
-  const genes = intersectionGenes();
+  const genes = intersectionGenes(state.files);
+  const clearText = noSharedFindingsBody(state.lang);
+
   return (
     <div className="screen">
       <header className="screen-head">
         <h2>{c.togetherT}</h2>
-        <p>{c.togetherSub}</p>
+        <p>{genes.length === 0 ? c.togetherClearSub : c.togetherSub}</p>
       </header>
-      {genes.map((gene, i) => (
+
+      {genes.length === 0 ? (
         <motion.article
-          key={gene}
-          className="finding finding-shared"
-          initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.1 + i * 0.14, ease }}
+          className="card card-good"
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease }}
         >
           <div className="finding-top">
-            <div>
-              <p className="gene">{gene}</p>
-              <p className="condition">{PEOPLE[id].findings.find((f) => f.gene === gene)?.condition[state.lang]}</p>
-            </div>
-            <Listen text={TOGETHER[gene][state.lang]} />
+            <h3 className="card-title">
+              <Icon name="shieldCheck" size={18} />
+              {c.clearCardT}
+            </h3>
+            <Listen text={clearText} />
           </div>
-          {!person.simple && <p className="finding-body">{TOGETHER[gene][state.lang]}</p>}
+          <p className="finding-body">{clearText}</p>
         </motion.article>
-      ))}
-      <motion.section
-        className="card"
-        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: reduceMotion ? 0 : 0.35, ease }}
-      >
-        <h3 className="card-title">{c.riskT}</h3>
-        <RiskPicture affected={c.riskAffected} carrier={c.riskCarrier} neither={c.riskNeither} />
-        <p className="muted small">{c.riskNote}</p>
-      </motion.section>
+      ) : (
+        <>
+          {genes.map((gene, i) => {
+            const cond =
+              file.findings.find((f) => f.gene === gene)?.condition[state.lang] ??
+              partnerFile.findings.find((f) => f.gene === gene)?.condition[state.lang] ??
+              "";
+            const bodyText = sharedGeneBody(state.files, gene, state.lang);
+            return (
+              <motion.article
+                key={gene}
+                className="finding finding-shared"
+                initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.55, delay: reduceMotion ? 0 : 0.1 + i * 0.14, ease }}
+              >
+                <div className="finding-top">
+                  <div>
+                    <p className="gene">{gene}</p>
+                    <p className="condition">{cond}</p>
+                  </div>
+                  <Listen text={bodyText} />
+                </div>
+                {!person.simple && <p className="finding-body">{bodyText}</p>}
+              </motion.article>
+            );
+          })}
+          <motion.section
+            className="card"
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: reduceMotion ? 0 : 0.35, ease }}
+          >
+            <h3 className="card-title">{c.riskT}</h3>
+            <RiskPicture affected={c.riskAffected} carrier={c.riskCarrier} neither={c.riskNeither} />
+            <p className="muted small">{c.riskNote}</p>
+          </motion.section>
+        </>
+      )}
+
       <section className="card card-quiet">
         <h3 className="card-title">{c.familyWhyT}</h3>
         <div className="mini-tree">
-          <FamilyTree grand={c.treeGrand} layla={c.treeLayla} omar={c.treeOmar} carrier={c.treeCarrier} />
+          <FamilyTree grand={c.treeGrand} layla={name} omar={partnerName} carrier={c.treeCarrier} />
         </div>
         <p className="muted small">{c.familyWhyB}</p>
       </section>
@@ -574,7 +676,7 @@ function ExplainScreen({ id }: { id: PersonId }) {
     );
   }
 
-  const question = prompts(id, state.lang)[person.step];
+  const question = prompts(id, state.lang, state.files)[person.step];
   const good = person.attempt === null;
   return (
     <form
@@ -645,6 +747,7 @@ function Booking({ id, partnerName }: { id: PersonId; partnerName: string }) {
           {c.bookedT}
         </h3>
         <p>{c[state.booking]}</p>
+        <CounselorShareToggle id={id} />
       </section>
     );
   }
@@ -669,7 +772,23 @@ function Booking({ id, partnerName }: { id: PersonId; partnerName: string }) {
           </button>
         ))}
       </div>
+      <CounselorShareToggle id={id} />
     </section>
+  );
+}
+
+/** Explicit, revocable consent for the counsellor to see this person's full result. */
+function CounselorShareToggle({ id }: { id: PersonId }) {
+  const { state, dispatch, c } = usePerson(id);
+  const on = Boolean(state.people[id].counselorFull);
+  return (
+    <label className="share-toggle">
+      <input type="checkbox" checked={on} onChange={(e) => dispatch({ type: "counselorShare", id, on: e.target.checked })} />
+      <span>
+        <strong>{c.shareFullT}</strong>
+        <span className="muted small">{c.shareFullB}</span>
+      </span>
+    </label>
   );
 }
 
@@ -691,7 +810,7 @@ function AskScreen({ id }: { id: PersonId }) {
       </header>
       <div className="thread">
         {person.thread.map((turn, index) => {
-          const view = renderTurn(id, turn, state.lang);
+          const view = renderTurn(id, turn, state.lang, state.files);
           return (
             <div key={`${turn.q}-${index}`} className="turn">
               <div className="bubble bubble-me">{turn.q}</div>
@@ -754,7 +873,7 @@ function AskScreen({ id }: { id: PersonId }) {
 function FamilyScreen({ id }: { id: PersonId }) {
   const { state, dispatch, c, name } = usePerson(id);
   const text = inviteText(state.lang, state.inviteSigned ? name : undefined);
-  const leaks = leakedTokens(text, ALL_GENE_TOKENS);
+  const leaks = leakedTokens(text, allCaseSensitiveTokens(state.files));
   const reduceMotion = useReducedMotion();
   return (
     <div className="screen">
@@ -768,7 +887,11 @@ function FamilyScreen({ id }: { id: PersonId }) {
       </header>
       {!state.inviteSent && (
         <label className="switch">
-          <input type="checkbox" checked={state.inviteSigned} onChange={(event) => dispatch({ type: "signInvite", on: event.target.checked })} />
+          <input
+            type="checkbox"
+            checked={state.inviteSigned}
+            onChange={(event) => dispatch({ type: "signInvite", on: event.target.checked })}
+          />
           <span className="switch-track" aria-hidden="true" />
           {c.signIt}
         </label>
@@ -810,7 +933,7 @@ function FamilyScreen({ id }: { id: PersonId }) {
   );
 }
 
-function Listen({ text }: { text: string }): ReactNode {
+export function Listen({ text }: { text: string }): ReactNode {
   const { state } = useSatr();
   const c = t(state.lang);
   const [on, setOn] = useState(false);

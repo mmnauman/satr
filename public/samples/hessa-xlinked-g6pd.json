@@ -1,0 +1,12 @@
+{
+  "resourceType": "DiagnosticReport",
+  "id": "AD-22310",
+  "subject": { "display": "Hessa" },
+  "observations": [
+    {
+      "gene": "G6PD",
+      "clinicalSignificance": "Pathogenic",
+      "inheritance": "x_linked"
+    }
+  ]
+}

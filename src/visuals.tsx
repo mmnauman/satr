@@ -31,6 +31,12 @@ const PATHS: Record<string, string> = {
   scan: "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16",
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3.5 2",
   heart: "M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7.2 4.5 4.5 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z",
+  upload: "M12 16V4M7.5 8.5 12 4l4.5 4.5M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2",
+  download: "M12 4v12M7.5 11.5 12 16l4.5-4.5M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2",
+  copy: "M9 9h10v11H9zM5 15H4V4h10v1",
+  plus: "M12 5v14M5 12h14",
+  file: "M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h4",
+  link: "M10 14a4 4 0 0 0 5.6 0l2.8-2.8a4 4 0 0 0-5.6-5.6L11.4 7M14 10a4 4 0 0 0-5.6 0L5.6 12.8a4 4 0 0 0 5.6 5.6L12.6 17",
 };
 
 export type IconName = keyof typeof PATHS;
