@@ -1,0 +1,4 @@
+##fileformat=VCFv4.2
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Amina
+5	70924941	.	C	T	99	PASS	GENE=SMN1;CLNSIG=Pathogenic;INH=autosomal_recessive	GT	0/1
+7	117559590	.	G	A	99	PASS	GENE=CFTR;CLNSIG=Benign;INH=autosomal_recessive	GT	0/1

@@ -1,16 +1,24 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { intersectionGenes, reportable, type CaseFiles, type PersonId } from "./content";
+import { CASE_PRESETS, type CasePresetId } from "./domain/case";
 import { ease, Scramble } from "./fx";
-import { PEOPLE, intersectionGenes, reportable, type PersonId } from "./content";
 import { Phone } from "./Phone";
 import { runPsi, short, type PsiTrace } from "./psi";
+import { CarePathPanel } from "./Portal";
+import { ReportModal } from "./ReportModal";
 import { fill, t, type Strings } from "./strings";
 import { guideStep, isCompiled, isReleased, useSatr, type Action, type AuditEvent } from "./store";
 import { Icon } from "./visuals";
 
 export function Stage() {
-  const { state, dispatch } = useSatr();
+  const { state, dispatch, switchMode } = useSatr();
   const c = t(state.lang);
+  const [editingId, setEditingId] = useState<PersonId | null>(null);
+
+  const labelFor = (id: PersonId) =>
+    fill(c.phoneOwner, { name: state.files[id].name[state.lang] });
+
   return (
     <main className="stage">
       <div className="stage-orbs" aria-hidden="true">
@@ -18,6 +26,54 @@ export function Stage() {
         <span />
         <span />
       </div>
+
+      <section className="stage-casebar" aria-label={c.caseBarTitle}>
+        <div className="stage-casebar-left">
+          <span className="eyebrow eyebrow-gold">{c.caseBarTitle}</span>
+          <label className="stage-preset-select">
+            <span className="sr-only">{c.presetLabel}</span>
+            <select
+              value={state.presetId}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val !== "custom") {
+                  dispatch({ type: "setPreset", presetId: val as CasePresetId });
+                }
+              }}
+            >
+              {CASE_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label[state.lang]}
+                </option>
+              ))}
+              {state.presetId === "custom" && <option value="custom">{c.presetCustom}</option>}
+            </select>
+          </label>
+        </div>
+
+        <div className="stage-casebar-actions">
+          {(["layla", "omar"] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              className="btn btn-outline-light btn-sm"
+              onClick={() => setEditingId(id)}
+            >
+              <Icon name="upload" size={14} />
+              {fill(c.editReportA, { name: state.files[id].name[state.lang] })}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="btn btn-gold btn-sm"
+            onClick={() => switchMode("live", "workspace")}
+          >
+            <Icon name="link" size={14} />
+            {c.modeLive}
+          </button>
+        </div>
+      </section>
+
       <div className="stage-switch" role="tablist">
         {(["layla", "omar"] as const).map((id) => (
           <button
@@ -28,10 +84,11 @@ export function Stage() {
             className={state.focus === id ? "is-on" : ""}
             onClick={() => dispatch({ type: "focus", id })}
           >
-            {id === "layla" ? c.laylaPhone : c.omarPhone}
+            {labelFor(id)}
           </button>
         ))}
       </div>
+
       <div className="stage-phones">
         {(["layla", "omar"] as const).map((id, i) => (
           <motion.figure
@@ -41,19 +98,32 @@ export function Stage() {
             animate={{ opacity: 1, y: 0, rotateX: 0 }}
             transition={{ duration: 0.9, delay: 0.1 + i * 0.12, ease }}
           >
-            <figcaption>{id === "layla" ? c.laylaPhone : c.omarPhone}</figcaption>
-            <Phone id={id} />
+            <figcaption>{labelFor(id)}</figcaption>
+            <Phone id={id} onEditReport={() => setEditingId(id)} />
           </motion.figure>
         ))}
       </div>
+
       <aside className="rail">
         <GuideCard />
         <div className="rail-scroll">
           <Ledger />
           <MatchEngine />
+          {(state.booking || state.counseling || state.referred) && <CarePathPanel me={state.focus} />}
           <ActivityLog />
         </div>
       </aside>
+
+      {editingId && (
+        <ReportModal
+          open
+          personId={editingId}
+          currentFile={state.files[editingId]}
+          lang={state.lang}
+          onClose={() => setEditingId(null)}
+          onApply={(updated) => dispatch({ type: "setReport", id: editingId, file: updated })}
+        />
+      )}
     </main>
   );
 }
@@ -201,12 +271,12 @@ export function GuideDock() {
 
 type Access = "yes" | "shared" | "sealed" | "no";
 
-function Ledger() {
+export function Ledger({ light = false }: { light?: boolean }) {
   const { state } = useSatr();
   const c = t(state.lang);
   const compiled = isCompiled(state);
   const released = isReleased(state);
-  const shared = new Set(intersectionGenes());
+  const shared = new Set(intersectionGenes(state.files));
 
   const seen = (viewer: PersonId, owner: PersonId, gene: string): Access => {
     if (viewer === owner) return state.people[owner].opened ? "yes" : "sealed";
@@ -214,8 +284,8 @@ function Ledger() {
   };
 
   const rows: { label: string; cells: Access[] }[] = (["layla", "omar"] as const).flatMap((owner) =>
-    PEOPLE[owner].findings.map((f) => ({
-      label: `${PEOPLE[owner].name[state.lang]} · ${f.gene}`,
+    state.files[owner].findings.map((f) => ({
+      label: `${state.files[owner].name[state.lang]} · ${f.gene}`,
       cells: [seen("layla", owner, f.gene), seen("omar", owner, f.gene), "yes" as Access, "no" as Access, "no" as Access],
     })),
   );
@@ -227,18 +297,18 @@ function Ledger() {
   const icon = { yes: "eye", shared: "users", sealed: "lock", no: "eyeOff" } as const;
 
   return (
-    <section className="panel">
-      <h3 className="panel-title">
+    <section className={light ? "panel-light" : "panel"}>
+      <h3 className={light ? "panel-title-dark" : "panel-title"}>
         <span className="live-dot" aria-hidden="true" />
         {c.ledgerTitle}
       </h3>
       <div className="ledger-scroll">
-        <table className="ledger">
+        <table className={light ? "ledger ledger-light" : "ledger"}>
           <thead>
             <tr>
               <th />
-              <th>{c.colLayla}</th>
-              <th>{c.colOmar}</th>
+              <th>{state.files.layla.name[state.lang]}</th>
+              <th>{state.files.omar.name[state.lang]}</th>
               <th>{c.colCounselShort}</th>
               <th>{c.colCourtShort}</th>
               <th>{c.colFamilyShort}</th>
@@ -288,13 +358,16 @@ function Ledger() {
   );
 }
 
-function MatchEngine() {
+export function MatchEngine({ light = false }: { light?: boolean }) {
   const { state } = useSatr();
   const c = t(state.lang);
   const compiled = isCompiled(state);
   const [trace, setTrace] = useState<PsiTrace | null>(null);
   const [phase, setPhase] = useState(0);
   const [seed, setSeed] = useState(0);
+
+  const aGenesKey = reportable("layla", state.files).join(",");
+  const bGenesKey = reportable("omar", state.files).join(",");
 
   useEffect(() => {
     if (!compiled) {
@@ -304,7 +377,7 @@ function MatchEngine() {
     }
     let live = true;
     const timers: number[] = [];
-    runPsi(reportable("layla"), reportable("omar")).then((result) => {
+    runPsi(reportable("layla", state.files), reportable("omar", state.files)).then((result) => {
       if (!live) return;
       setTrace(result);
       setPhase(1);
@@ -314,19 +387,21 @@ function MatchEngine() {
       live = false;
       timers.forEach(clearTimeout);
     };
-  }, [compiled, seed]);
+  }, [compiled, seed, aGenesKey, bGenesKey, state.files]);
 
   const agreed = (["layla", "omar"] as const).filter((id) => state.people[id].consented);
 
   return (
-    <section className="panel">
-      <h3 className="panel-title">
+    <section className={light ? "panel-light" : "panel"}>
+      <h3 className={light ? "panel-title-dark" : "panel-title"}>
         <Icon name="shieldCheck" size={16} />
         {c.engineTitle}
       </h3>
       {!trace ? (
-        <p className="panel-note">
-          {agreed.length === 1 ? fill(c.engineHalf, { name: PEOPLE[agreed[0]].name[state.lang] }) : c.engineIdle}
+        <p className={light ? "muted small" : "panel-note"}>
+          {agreed.length === 1
+            ? fill(c.engineHalf, { name: state.files[agreed[0]].name[state.lang] })
+            : c.engineIdle}
         </p>
       ) : (
         <>
@@ -339,23 +414,34 @@ function MatchEngine() {
             ))}
           </ol>
           <div className="engine-cols">
-            {(["a", "b"] as const).map((side) => (
-              <div key={side} className="engine-col">
-                <p className="engine-who">{side === "a" ? c.laylaPhone : c.omarPhone}</p>
-                {trace[side].map((row) => (
-                  <div key={row.gene} className={phase >= 3 && row.match ? "hash is-match" : "hash"}>
-                    <code>
-                      <Scramble text={phase >= 2 ? short(row.twice) : short(row.once)} duration={600} />
-                    </code>
-                    {phase >= 3 && row.match && <Icon name="check" size={13} />}
-                  </div>
-                ))}
-              </div>
-            ))}
+            {(["a", "b"] as const).map((side) => {
+              const ownerId: PersonId = side === "a" ? "layla" : "omar";
+              return (
+                <div key={side} className="engine-col">
+                  <p className="engine-who">{fill(c.phoneOwner, { name: state.files[ownerId].name[state.lang] })}</p>
+                  {trace[side].length === 0 ? (
+                    <div className="hash">
+                      <code>0 reportable</code>
+                    </div>
+                  ) : (
+                    trace[side].map((row) => (
+                      <div key={row.gene} className={phase >= 3 && row.match ? "hash is-match" : "hash"}>
+                        <code>
+                          <Scramble text={phase >= 2 ? short(row.twice) : short(row.once)} duration={600} />
+                        </code>
+                        {phase >= 3 && row.match && <Icon name="check" size={13} />}
+                      </div>
+                    ))
+                  )}
+                </div>
+              );
+            })}
           </div>
           {phase >= 3 && (
             <p className="engine-result">
-              {fill(c.engineResult, { genes: trace.intersection.join(", ") })}
+              {trace.intersection.length > 0
+                ? fill(c.engineResult, { genes: trace.intersection.join(", ") })
+                : c.togetherClearSub}
             </p>
           )}
           <div className="engine-foot">
@@ -371,8 +457,8 @@ function MatchEngine() {
   );
 }
 
-export function auditText(event: AuditEvent, c: Strings, lang: "en" | "ar"): string {
-  const name = event.id ? PEOPLE[event.id].name[lang] : "";
+export function auditText(event: AuditEvent, c: Strings, lang: "en" | "ar", files?: CaseFiles): string {
+  const name = event.id && files ? files[event.id].name[lang] : event.id ?? "";
   switch (event.code) {
     case "open":
       return fill(c.logOpen, { name });
@@ -398,21 +484,39 @@ export function auditText(event: AuditEvent, c: Strings, lang: "en" | "ar"): str
       return fill(c.logBook, { name });
     case "interest":
       return fill(c.logInterest, { name, option: event.detail ? c[event.detail as keyof Strings] : "" });
+    case "upload":
+      return fill(c.logUpload, { name });
+    case "join":
+      return fill(c.logJoin, { name });
+    case "view":
+      return event.detail === "court" ? c.logViewCourt : event.detail === "system" ? c.logViewSystem : c.logViewCounselor;
+    case "share":
+      return fill(event.detail === "off" ? c.logShareOff : c.logShareOn, { name });
+    case "confirm":
+      return event.detail === "done" ? c.logConfirmDone : c.logConfirmOrdered;
+    case "repro":
+      return c.logRepro;
+    case "note":
+      return c.logNote;
+    case "delete":
+      return fill(c.logDelete, { name });
+    case "register":
+      return c.logRegister;
   }
 }
 
-function ActivityLog() {
+export function ActivityLog({ light = false }: { light?: boolean }) {
   const { state } = useSatr();
   const c = t(state.lang);
   const events = [...state.audit].reverse();
   return (
-    <section className="panel">
-      <h3 className="panel-title">
+    <section className={light ? "panel-light" : "panel"}>
+      <h3 className={light ? "panel-title-dark" : "panel-title"}>
         <Icon name="clock" size={16} />
         {c.logTitle}
       </h3>
       {events.length === 0 ? (
-        <p className="panel-note">{c.logEmpty}</p>
+        <p className={light ? "muted small" : "panel-note"}>{c.logEmpty}</p>
       ) : (
         <ol className="log">
           {events.map((event) => (
@@ -423,8 +527,14 @@ function ActivityLog() {
               animate={{ opacity: 1, x: 0, backgroundColor: "rgba(233,201,131,0)" }}
               transition={{ duration: 0.8, ease }}
             >
-              <time>{new Date(event.at).toLocaleTimeString(state.lang === "ar" ? "ar-AE" : "en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</time>
-              <span>{auditText(event, c, state.lang)}</span>
+              <time>
+                {new Date(event.at).toLocaleTimeString(state.lang === "ar" ? "ar-AE" : "en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </time>
+              <span>{auditText(event, c, state.lang, state.files)}</span>
             </motion.li>
           ))}
         </ol>

@@ -1,0 +1,9 @@
+{
+  "name": { "en": "Noura", "ar": "نورة" },
+  "screeningId": "AD-20411",
+  "panel": "Abu Dhabi 570-gene carrier panel",
+  "findings": [
+    { "gene": "HBB", "classification": "pathogenic", "inheritance": "autosomal_recessive" },
+    { "gene": "PAH", "classification": "pathogenic", "inheritance": "autosomal_recessive" }
+  ]
+}

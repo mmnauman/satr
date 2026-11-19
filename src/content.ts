@@ -1,105 +1,18 @@
-import type { Lang } from "./strings";
-import { ALL_GENE_TOKENS, leakedTokens, patientForbidden, scoreAnswer, type Intent } from "./logic";
+import {
+  allCaseSensitiveTokens,
+  analyzeCase,
+  createDefaultLaylaOmarFiles,
+  type CaseFiles,
+  type Finding,
+  type PersonFile,
+  type PersonId,
+} from "./domain/case";
+import type { Lang } from "./domain/genes";
+import { leakedTokens, patientForbidden, scoreAnswer, type Intent } from "./logic";
 
-export type { Lang };
+export type { CaseFiles, Finding, Lang, PersonFile, PersonId };
 
-export type PersonId = "layla" | "omar";
-
-export type Finding = {
-  gene: string;
-  condition: Record<Lang, string>;
-  body: Record<Lang, string>;
-  simple: Record<Lang, string>;
-  classification: "pathogenic" | "likely_pathogenic" | "vus";
-};
-
-export type PersonFile = {
-  id: PersonId;
-  name: Record<Lang, string>;
-  initial: Record<Lang, string>;
-  partner: PersonId;
-  number: string;
-  findings: Finding[];
-};
-
-const ush2aBody = (you: Record<Lang, string>) => ({
-  en: `The lab found that you carry a change in a gene called USH2A. When a child inherits this change from both parents, it can cause Usher syndrome type 2A, which affects hearing from birth and sight over time. ${you.en} Carriers are healthy. It simply means the change is something you could pass on.`,
-  ar: `وجد المختبر أنك تحمل تغييراً في جين اسمه USH2A. إذا ورث الطفل هذا التغيير من الأبوين معاً، فقد يسبب متلازمة أوشر من النوع 2A التي تؤثر في السمع منذ الولادة وفي البصر مع الوقت. ${you.ar} الحامل شخص سليم، والأمر يعني فقط أن هذا التغيير قد ينتقل منك إلى أطفالك.`,
-});
-
-const ush2aSimple = {
-  en: "You carry a gene change. You are healthy. It only matters if your partner carries the same one.",
-  ar: "تحمل تغييراً في جين. أنت بصحة جيدة. لا يهم الأمر إلا إذا كان شريكك يحمل التغيير نفسه.",
-};
-
-const ush2aCondition = { en: "Linked to Usher syndrome type 2A", ar: "مرتبط بمتلازمة أوشر من النوع 2A" };
-
-export const PEOPLE: Record<PersonId, PersonFile> = {
-  layla: {
-    id: "layla",
-    name: { en: "Layla", ar: "ليلى" },
-    initial: { en: "L", ar: "ل" },
-    partner: "omar",
-    number: "AD-18421",
-    findings: [
-      {
-        gene: "USH2A",
-        classification: "pathogenic",
-        condition: ush2aCondition,
-        simple: ush2aSimple,
-        body: ush2aBody({
-          en: "Carrying it does not mean you have the condition, and it is not a diagnosis for any future child.",
-          ar: "حملك له لا يعني أنك مصابة بالحالة، وليس تشخيصاً لأي طفل في المستقبل.",
-        }),
-      },
-      {
-        gene: "GJB2",
-        classification: "pathogenic",
-        condition: { en: "Linked to inherited hearing loss", ar: "مرتبط بضعف السمع الوراثي" },
-        simple: {
-          en: "You carry a second gene change. You are healthy. This one stays private to you.",
-          ar: "تحملين تغييراً ثانياً. أنت بصحة جيدة. هذه النتيجة تبقى خاصة بك.",
-        },
-        body: {
-          en: "You also carry a change in GJB2, a gene linked to some kinds of inherited hearing loss. You do not have hearing loss because of it. This result stays private to you. It would only ever appear in your shared result if your partner carried a change in the same gene and you had both agreed to share.",
-          ar: "تحملين أيضاً تغييراً في GJB2، وهو جين مرتبط ببعض أنواع ضعف السمع الوراثي. هذا لا يعني أنك تعانين ضعف السمع. تبقى هذه النتيجة خاصة بك، ولن تظهر في نتيجتكما المشتركة إلا إذا كان شريكك يحمل تغييراً في الجين نفسه ووافقتما معاً على المشاركة.",
-        },
-      },
-    ],
-  },
-  omar: {
-    id: "omar",
-    name: { en: "Omar", ar: "عمر" },
-    initial: { en: "O", ar: "ع" },
-    partner: "layla",
-    number: "AD-18422",
-    findings: [
-      {
-        gene: "USH2A",
-        classification: "pathogenic",
-        condition: ush2aCondition,
-        simple: ush2aSimple,
-        body: ush2aBody({
-          en: "Carrying it does not mean you have the condition, and it is not a diagnosis for any future child.",
-          ar: "حملك له لا يعني أنك مصاب بالحالة، وليس تشخيصاً لأي طفل في المستقبل.",
-        }),
-      },
-      {
-        gene: "MEFV",
-        classification: "pathogenic",
-        condition: { en: "Linked to familial Mediterranean fever", ar: "مرتبط بحمى البحر الأبيض المتوسط العائلية" },
-        simple: {
-          en: "You carry a second gene change. A counsellor can tell you what it means for you. It stays private.",
-          ar: "تحمل تغييراً ثانياً. يستطيع المستشار أن يشرح لك معناه. يبقى خاصاً بك.",
-        },
-        body: {
-          en: "You also carry a change in MEFV, a gene linked to familial Mediterranean fever. Having this change is not the same as having the illness, and a genetic counsellor can explain what this particular change means for you. It stays private to you.",
-          ar: "تحمل أيضاً تغييراً في MEFV، وهو جين مرتبط بحمى البحر الأبيض المتوسط العائلية. وجود هذا التغيير ليس كالإصابة بالمرض، ويستطيع المستشار الوراثي أن يشرح لك ما يعنيه هذا التغيير تحديداً. تبقى هذه النتيجة خاصة بك.",
-        },
-      },
-    ],
-  },
-};
+export const PEOPLE: CaseFiles = createDefaultLaylaOmarFiles();
 
 export const TOGETHER: Record<string, Record<Lang, string>> = {
   USH2A: {
@@ -143,25 +56,26 @@ export const TIER_TWO: ClinicFile = {
   },
 };
 
-export function partnerOf(id: PersonId): PersonFile {
-  return PEOPLE[PEOPLE[id].partner];
+export function partnerOf(id: PersonId, files: CaseFiles = PEOPLE): PersonFile {
+  return files[files[id].partner];
 }
 
-export function reportable(id: PersonId): string[] {
-  return PEOPLE[id].findings.filter((f) => f.classification !== "vus").map((f) => f.gene);
+export function reportable(id: PersonId, files: CaseFiles = PEOPLE): string[] {
+  return files[id].findings
+    .filter((f) => f.classification !== "vus" && f.inheritance === "autosomal_recessive")
+    .map((f) => f.gene);
 }
 
-export function intersectionGenes(): string[] {
-  const layla = new Set(reportable("layla"));
-  return reportable("omar").filter((gene) => layla.has(gene));
+export function intersectionGenes(files: CaseFiles = PEOPLE): string[] {
+  return analyzeCase(files).sharedGenes;
 }
 
-export function withheldCount(id: PersonId): number {
-  const shared = new Set(intersectionGenes());
-  return PEOPLE[id].findings.filter((f) => !shared.has(f.gene)).length;
+export function withheldCount(id: PersonId, files: CaseFiles = PEOPLE): number {
+  const analysis = analyzeCase(files);
+  return id === "layla" ? analysis.withheldA : analysis.withheldB;
 }
 
-const REPLIES: Record<Intent, Record<"before" | "after", Record<Lang, string>>> = {
+const REPLIES: Record<string, Record<"before" | "after", Record<Lang, string>>> = {
   "refuse-marry": {
     before: {
       en: "That’s a decision only the two of you can make, and Satr won’t make it for you. What I can do is help you understand your results, and connect you with a genetic counsellor who can talk it through with you both. Whatever you decide is yours.",
@@ -245,7 +159,8 @@ const REPLIES: Record<Intent, Record<"before" | "after", Record<Lang, string>>> 
 };
 
 export function reply(intent: Intent, compiled: boolean, lang: Lang): string {
-  return REPLIES[intent][compiled ? "after" : "before"][lang];
+  const bucket = REPLIES[intent] ?? REPLIES.escalate;
+  return bucket[compiled ? "after" : "before"][lang];
 }
 
 export function replyLeaks(intent: Intent, compiled: boolean, lang: Lang): string[] {
@@ -263,50 +178,71 @@ export function inviteText(lang: Lang, fromName?: string): string {
 
 export type CourtStatus = { explained: boolean; released: boolean };
 
-export function courtRows(status: CourtStatus, lang: Lang): { label: string; value: string }[] {
+export function courtRows(
+  status: CourtStatus,
+  lang: Lang,
+  files: CaseFiles = PEOPLE,
+): { label: string; value: string }[] {
+  const numA = files.layla.number || "AD-18421";
+  const numB = files.omar.number || "AD-18422";
+  const ref = `PMS-${numA}-${numB}`;
   if (lang === "ar") {
     return [
-      { label: "المتقدمان", value: "AD-18421 و AD-18422" },
+      { label: "المتقدمان", value: `${numA} و ${numB}` },
       { label: "الفحص المخبري", value: "اكتمل (لوحة من 570 جيناً)" },
       { label: "فهم النتيجة", value: status.explained ? "شرح كل منهما النتيجة بكلماته" : "لم يكتمل بعد" },
       { label: "جلسة الإرشاد الوراثي", value: status.released ? "تمت مع مستشار معتمد" : "بانتظار الجلسة" },
       { label: "الشهادة", value: status.released ? "صادرة، وصالحة ثلاثة أشهر" : "لم تصدر بعد" },
-      { label: "الرقم المرجعي", value: status.released ? "PMS-AD-18421-18422" : "—" },
+      { label: "الرقم المرجعي", value: status.released ? ref : "—" },
     ];
   }
   return [
-    { label: "Applicants", value: "AD-18421 and AD-18422" },
+    { label: "Applicants", value: `${numA} and ${numB}` },
     { label: "Laboratory screening", value: "Complete (570-gene panel)" },
     { label: "Result understood", value: status.explained ? "Each person explained it in their own words" : "Not yet complete" },
     { label: "Genetic counselling", value: status.released ? "Completed with an accredited counsellor" : "Waiting for the session" },
     { label: "Certificate", value: status.released ? "Issued, valid for three months" : "Not issued yet" },
-    { label: "Reference", value: status.released ? "PMS-AD-18421-18422" : "—" },
+    { label: "Reference", value: status.released ? ref : "—" },
   ];
 }
 
-export function prompts(id: PersonId, lang: Lang): [string, string, string] {
-  const other = partnerOf(id).name[lang];
+export function prompts(id: PersonId, lang: Lang, files: CaseFiles = PEOPLE): [string, string, string] {
+  const other = partnerOf(id, files).name[lang];
+  const ownCount = files[id].findings.length;
+  const sharedCount = intersectionGenes(files).length;
   if (lang === "ar") {
     return [
-      "بكلماتك أنت: ماذا يعني أنك تحمل تغييراً في جين؟",
+      ownCount === 0
+        ? "بكلماتك أنت: ماذا يعني أن لوحتك لم تُظهر حمل تغيير مسبب للمرض، وما معنى أن يكون الإنسان حاملاً سليماً؟"
+        : "بكلماتك أنت: ماذا يعني أنك تحمل تغييراً في جين؟",
       `ماذا يستطيع ${other} أن يرى من نتائجك، وماذا يبقى خاصاً بك؟`,
-      "ماذا يعني احتمال واحد من أربعة، وما الذي لا يعنيه؟",
+      sharedCount === 0
+        ? "ماذا يعني عدم وجود جين مشترك بينكما في اللوحة، وهل يلغي ذلك كل احتمال أساسي في الحمل؟"
+        : "ماذا يعني احتمال واحد من أربعة، وما الذي لا يعنيه؟",
     ];
   }
   return [
-    "In your own words, what does it mean that you carry a gene change?",
+    ownCount === 0
+      ? "In your own words, what does being a healthy carrier mean, even when your own panel had no reportable change?"
+      : "In your own words, what does it mean that you carry a gene change?",
     `What can ${other} see from your results, and what stays private to you?`,
-    "What does a 1 in 4 chance mean, and what doesn’t it mean?",
+    sharedCount === 0
+      ? "What does having no shared gene on the panel mean, and why does a small baseline pregnancy chance still remain?"
+      : "What does a 1 in 4 chance mean, and what doesn’t it mean?",
   ];
 }
 
-export function passingSample(id: PersonId, step: 0 | 1 | 2, lang: Lang): string {
-  const other = partnerOf(id).name[lang];
+export function passingSample(id: PersonId, step: 0 | 1 | 2, lang: Lang, files: CaseFiles = PEOPLE): string {
+  const other = partnerOf(id, files).name[lang];
+  const sharedCount = intersectionGenes(files).length;
   if (lang === "ar") {
     if (step === 0) return "أحمل تغييراً في جين، وهذا لا يعني أني مصاب بالمرض، وليس تشخيصاً.";
     if (step === 1) {
       const verb = id === "layla" ? "يرى" : "ترى";
       return `${other} ${verb} فقط الجين الذي نحمله معاً. لا ${verb} نتيجتي الأخرى.`;
+    }
+    if (sharedCount === 0) {
+      return "عدم وجود جين مشترك أمر مطمئن، لكن الفحص يقلل الاحتمال ولا يلغي كل احتمال أساسي في كل حمل وليس أمراً مؤكداً.";
     }
     return "واحد من أربعة احتمال في كل حمل، وليس أمراً مؤكداً ولا تشخيصاً لطفل.";
   }
@@ -314,6 +250,9 @@ export function passingSample(id: PersonId, step: 0 | 1 | 2, lang: Lang): string
   if (step === 1) {
     const pronoun = id === "layla" ? "He" : "She";
     return `${other} only sees the gene we both carry. ${pronoun} does not see my other result.`;
+  }
+  if (sharedCount === 0) {
+    return "Having no shared gene lowers risk, though a small baseline chance remains in each pregnancy and it is not a certainty.";
   }
   return "One in four is a chance for each pregnancy. It is not a certainty and not a diagnosis.";
 }
@@ -324,6 +263,7 @@ export function harmfulSample(lang: Lang): string {
 
 export function runContentChecks(): string[] {
   const bad: string[] = [];
+  const tokens = allCaseSensitiveTokens(PEOPLE);
   const intents: Intent[] = ["refuse-marry", "refuse-direct", "risk", "sees", "options", "invite", "carrier", "escalate"];
   for (const intent of intents) {
     for (const lang of ["en", "ar"] as const) {
@@ -335,14 +275,14 @@ export function runContentChecks(): string[] {
   }
   for (const lang of ["en", "ar"] as const) {
     for (const from of [undefined, PEOPLE.layla.name[lang]]) {
-      const invite = leakedTokens(inviteText(lang, from), ALL_GENE_TOKENS);
+      const invite = leakedTokens(inviteText(lang, from), tokens);
       if (invite.length) bad.push(`invite ${lang}: ${invite.join(",")}`);
     }
     for (const released of [false, true]) {
       const text = courtRows({ explained: released, released }, lang)
         .map((row) => `${row.label} ${row.value}`)
         .join(" ");
-      const found = leakedTokens(text, ALL_GENE_TOKENS);
+      const found = leakedTokens(text, tokens);
       if (found.length) bad.push(`court ${lang} ${released}: ${found.join(",")}`);
     }
   }

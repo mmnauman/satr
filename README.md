@@ -124,30 +124,32 @@ Use **Do this step for me** or drive the phones yourself. **Start again** resets
 
 | Piece | Location | Notes |
 | --- | --- | --- |
-| Diffie–Hellman private set intersection | `src/psi.ts` | Runs in the browser; demo-grade modulus; production would use a stronger group |
-| Guardrailed Ask Satr | `src/loop.ts` | Plans permissioned tool calls; checks that forbidden genes never appear in replies |
-| Explain-it-back scoring | `src/logic.ts` | Flags harmful readings in English and Arabic |
-| Leak scans | content / court / invite | Certificate and invite text are scanned for gene and condition names |
-| All UI copy | `src/strings.ts` | English and Arabic must stay in sync |
+| Pluggable application & prototype adapters | `src/adapters/` | `NeonApiCaseAdapter` (Vercel `/api` + Neon Postgres), `LocalBrowserCaseAdapter` (`localStorage` + `BroadcastChannel` cross-tab sync), and `SimulationCaseAdapter` |
+| Genetic report parser & sample kits | `src/adapters/reportParser.ts`, `src/ReportModal.tsx`, `public/samples/` | Parses `.json` (incl. FHIR `DiagnosticReport`), `.csv`/`.tsv`, `.vcf` (filtering benign variants), and `.txt` lab reports, or builds custom panels across a 20-gene Abu Dhabi catalog |
+| Interactive manual Ask Satr | `src/loop.ts`, `src/adapters/askEngine.ts`, `src/Agent.tsx` | Free-form English & Arabic questions on phones and the Agent Flow page, grounded strictly in each viewer’s permitted findings with partner-probe protection |
+| Server-side role redaction | `src/domain/projection.ts`, `api/` | Partner private genes never cross the wire before or after consent; court projection strips all genetic findings |
+| Diffie–Hellman private set intersection | `src/psi.ts` | Runs over reportable autosomal recessive findings (excluding VUS); demo-grade modulus |
+| Explain-it-back scoring | `src/logic.ts` | Adapts dynamically to shared-gene vs 0-shared-gene panels and flags harmful readings in English and Arabic |
+| Leak scans | `scripts/check.ts` | Automated checks across all 5 clinical presets, partner-probing attacks, report formats, and role projections |
 
-## What this hackathon build is (current implementation)
+## Architecture in this repository (Live Application + Guided Prototype)
 
-This repository is a **working front-end prototype** that proves the product logic end-to-end with synthetic people (Layla & Omar). It has:
+Satr ships **both** a working multi-session **Live Application** (`My screening`) and the presenter-guided **Dual-Phone Prototype** (`Live demo`) over one shared privacy and clinical-boundary core:
 
-- Dual-phone live demo, nine-step presenter guide, bilingual UI  
-- Browser Diffie–Hellman PSI, guardrailed Ask Satr, explain-it-back, leak checks  
-- Counsellor / court / health-system / agent-flow views  
+- **Live Application (`src/Workspace.tsx` + `api/` + `db/schema.sql`)**: create a private screening session, upload or select a sample genetic report, share a 6-character pairing code with a partner across tabs or devices (persisted in **Neon Serverless Postgres** when `DATABASE_URL` is configured, with automatic fallback to `LocalBrowserCaseAdapter` when offline), complete mutual consent + PSI, finish explain-it-back, and book an accredited genetic counsellor slot.
+- **Guided Dual-Phone Prototype (`src/Stage.tsx`)**: side-by-side phones with the 9-step presenter guide, case preset switcher (`USH2A`, `HBB` beta-thalassemia, `0 shared genes`, `G6PD` X-linked escalation, `Tier 2 + VUS`), and live report upload for either phone.
+- **Interactive Ask Satr (`src/Agent.tsx` + `src/Phone.tsx`)**: type any manual question in English or Arabic and inspect the live permissioned lookup trace and zero-leak check.
 
-It has **no backend, no real patient data, no Malaffi connection**. State lives in the browser. That is enough to show *how* the challenge is solved; a production Satr would sit on Abu Dhabi’s existing health and identity stack as below.
+Sample data only; not connected to Malaffi or real patient records, and not medical advice.
 
-## Prototype tech stack
+## Tech stack
 
 | Layer | Choice |
 | --- | --- |
 | UI | React 19 + TypeScript |
 | Bundler | Vite 8 |
 | Motion | `motion` (`motion/react`) |
-| State | Client reducer in `src/store.tsx` — **no backend** |
+| Persistence adapters | Vercel Serverless Functions (`api/*.ts`) + `@neondatabase/serverless` (`db/schema.sql`) + `LocalBrowserCaseAdapter` + `SimulationCaseAdapter` |
 | Styles | `src/index.css`, `src/landing.css` (design tokens: palm / sand / gold) |
 | Media | Pexels photos/videos streamed from CDN (`src/media.ts`); posters as fallback |
 
@@ -155,17 +157,18 @@ It has **no backend, no real patient data, no Malaffi connection**. State lives 
 
 | File | Role |
 | --- | --- |
-| `src/store.tsx` | App state, views, guide step derivation |
-| `src/content.ts` | People, findings, shared-result and court copy |
-| `src/logic.ts` | Intent + explain-it-back scoring |
-| `src/loop.ts` | Ask Satr plan / render / leak checks |
-| `src/psi.ts` | Private set intersection |
-| `src/strings.ts` | All bilingual UI strings |
-| `src/Landing.tsx` / `Playground.tsx` | Marketing + interactive explainers |
-| `src/Stage.tsx` / `Phone.tsx` | Live dual-phone demo |
-| `src/Agent.tsx` | Agent flow + chatbot showcase |
-| `src/Desks.tsx` | Counsellor, court, health system |
-| `scripts/check.ts` | `npm run check` |
+| `src/domain/genes.ts` / `case.ts` / `projection.ts` | 20-gene bilingual catalog, dynamic couple triage, role-based redaction |
+| `src/adapters/` | `neonApiAdapter.ts`, `localBrowserAdapter.ts`, `simulationAdapter.ts`, `reportParser.ts`, `askEngine.ts` |
+| `api/` & `db/schema.sql` | Vercel serverless endpoints (`health`, `cases`, `cases/[code]`, `ask`) and Neon Postgres schema |
+| `src/Workspace.tsx` / `ReportModal.tsx` | Live Application couple pairing workspace and genetic report upload/builder |
+| `src/store.tsx` | Unified state, adapter sync, and presenter guide derivation |
+| `src/logic.ts` / `loop.ts` | Free-form EN/AR intent routing, explain-it-back scoring, permissioned Ask planner & leak guard |
+| `src/psi.ts` | Diffie–Hellman private set intersection |
+| `src/strings.ts` | All bilingual UI strings (English & Arabic) |
+| `src/Stage.tsx` / `Phone.tsx` | Dual-phone prototype stage + report/preset loader |
+| `src/Agent.tsx` | Interactive Ask Satr composer, live permission trace & role tables |
+| `src/Desks.tsx` | Counsellor queue & summary, gene-free court certificate, health-system metrics |
+| `scripts/check.ts` | `npm run check` automated privacy, parser, probe-attack, and PSI verification |
 
 ---
 
@@ -272,7 +275,8 @@ Then open **http://localhost:5173** in your browser.
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Vite dev server with hot reload (default port **5173**) |
+| `npm run dev` | Vite dev server with hot reload and the Satr API (default port **5173**) |
+| `npm run dev:lan` | Same, reachable from phones on your Wi-Fi, so two people can pair on two devices |
 | `npm run check` | Runs logic, content, Ask and PSI automated checks |
 | `npm run build` | Typechecks and builds production assets into `dist/` |
 | `npm run preview` | Serves the production build locally (default port **4173**) |
@@ -286,16 +290,42 @@ npm run check    # privacy / logic checks
 npm run dev      # develop against http://localhost:5173
 ```
 
-### Walk the demo locally
+### Use the live application
+
+The dev server includes the Satr API. Cases are kept in Neon Postgres when `DATABASE_URL` is set, and otherwise in a JSON file in `.data/`. Every role and consent rule is checked on the server.
+
+1. Click **Use your own report** (or open `#/me`). Enter your name, upload a JSON, CSV, VCF or text report, or pick genes by hand, and create your case.
+2. Send your partner the invite link (`#/join/CODE`). They join on their own phone with their own report. Neither of you ever receives the other's private findings.
+3. Each of you opens your result, agrees to share, asks Satr anything in your own words, and explains the result back. Then book a genetic counsellor. When you book, you can let the counsellor see your full result.
+4. Staff sign in at `#/staff` with the access key (`satr-demo` unless `SATR_STAFF_KEY` is set):
+   - **Genetic counsellor:** sees only couples who booked. Each person's full result appears only where that person agreed.
+   - **Court clerk:** looks a couple up by pairing code. The certificate never names a gene or a condition.
+   - **Health-system analyst:** sees anonymous totals only.
+5. Every staff view is written to the couple's own activity log.
+6. Each applicant has a private sign-in link (`#/signin/CODE/TOKEN`) to come back later or on another phone, a **Care path** tab (counselling, confirmatory test, reproductive-genomics referral, certificate, each with its date and the counsellor's summary) and a **Privacy and my data** tab (sharing consent, counsellor consent, download my data, remove my report).
+7. **How Satr works** (`#/demo`) is the real application loaded with five fictional couples at different stages. Become any person or staff role from the gold **Demo** bar at the top, in one window, and use Satr exactly as they would. **Start a fresh demo** resets the server to the sample couples. **Side-by-side phones** (`#/phones`) shows both partners' phones on one screen.
+8. The **marriage court clerk** works from a register of every couple (process steps only), opens a gene-free certificate, registers it, and can print it.
+
+### Run it as a production server
+
+```bash
+npm run build
+npm run build:server
+PORT=3000 SATR_STAFF_KEY=choose-a-key SATR_SESSION_SECRET=long-random-value npm start
+```
+
+One Node process serves the app and the API. Cases go to Neon when `DATABASE_URL` is set, otherwise to a JSON file in `SATR_DATA_DIR` (default `.data/`), so give the host a persistent disk and run one instance. The `Dockerfile` builds the same thing (`docker run -p 3000:3000 -v satr-data:/data ...`).
+
+### Walk the guided demo locally
 
 1. Open the landing page (optional).
-2. Click **Try the live demo**.
+2. Open **Side-by-side phones** (`#/phones`) from the demo hub.
 3. Press **Do this step for me** through all nine guide steps, or use the phones yourself.
 4. Use the top nav for **Counsellor**, **Court**, **Health system**, **Agent flow**.
 5. Switch language with **العربية** / **English**.
 6. **Start again** resets the case.
 
-**Note:** The landing page loads media from the Pexels CDN (needs internet). The live demo logic does not need a backend or API keys.
+**Note:** The landing page loads media from the Pexels CDN (needs internet). The guided demo runs entirely in the browser. The live application needs the Satr API, and falls back to this browser's storage only when no API is reachable.
 
 ---
 
