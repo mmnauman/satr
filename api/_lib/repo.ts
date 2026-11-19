@@ -218,6 +218,11 @@ class FileRepo implements CaseRepo {
 let repo: CaseRepo | null = null;
 
 export function getRepo(): CaseRepo {
-  if (!repo) repo = hasDatabaseUrl() ? new NeonRepo() : new FileRepo();
+  if (!repo) {
+    if (!hasDatabaseUrl() && (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY)) {
+      throw new Error("This deployment has no database. Set DATABASE_URL (Neon) to keep cases on the server.");
+    }
+    repo = hasDatabaseUrl() ? new NeonRepo() : new FileRepo();
+  }
   return repo;
 }

@@ -14,7 +14,7 @@ import type {
   ViewerRole,
 } from "./types";
 
-type Health = { ok?: boolean; store?: "neon" | "file"; demoKey?: boolean };
+type Health = { ok?: boolean; store?: "neon" | "file" | "browser"; demoKey?: boolean };
 
 /**
  * Live Application Adapter:
@@ -43,7 +43,8 @@ export class NeonApiCaseAdapter implements CaseStoreAdapter {
         .then(async (res): Promise<AdapterKind> => {
           if (!res.ok) return "local";
           const data = (await res.json()) as Health;
-          if (!data.ok) return "local";
+          // "browser": the host cannot keep cases (serverless without a database), so keep them here.
+          if (!data.ok || data.store === "browser") return "local";
           this.demoKey = Boolean(data.demoKey);
           return data.store === "neon" ? "neon" : "server";
         })
